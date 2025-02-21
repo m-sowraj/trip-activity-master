@@ -3,107 +3,115 @@ import React, { useState, useEffect } from 'react';
 import AddItemModal from './AdditemDish';
 import { toast } from 'react-toastify';
 
-const DishManager = ({ dishes, setDishes }) => {
+const DishManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editDish, setEditDish] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState([]);
 
-  // Fetch activities on component mount
+  // Fetch products on component mount
   useEffect(() => {
-    fetchActivities();
+    fetchProducts();
   }, []);
 
-  const fetchActivities = async () => {
+  const fetchProducts = async () => {
     try {
-      const response = await fetch('https://fourtrip-server.onrender.com/api/activity', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_rest')}`
-        }
-      });
+      const response = await fetch('https://fourtrip-server.onrender.com/api/products?created_by=' + localStorage.getItem('id_partner_shop') + '&is_deleted=false');
       const data = await response.json();
-      if (data.success) {
-        setDishes(data.data);
+      if (response.ok) {
+        setProducts(data);
       } else {
-        toast.error('Failed to fetch activities');
+        toast.error('Failed to fetch products');
       }
     } catch (error) {
-      console.error('Error fetching activities:', error);
-      toast.error('Error fetching activities');
+      console.error('Error fetching products:', error);
+      toast.error('Error fetching products');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddItem = (newItem) => {
-    setDishes(prev => [...prev, newItem]);
-  };
-
-  const toggleAvailability = async (id) => {
+  const handleAddItem = async (newProduct) => {
     try {
-      const dish = dishes.find(d => d._id === id);
-      const response = await fetch(`https://fourtrip-server.onrender.com/api/activity/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_rest')}`
-        },
-        body: JSON.stringify({
-          available: !dish.available
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setDishes(dishes.map(dish => 
-          dish._id === id ? { ...dish, available: !dish.available } : dish
-        ));
-        toast.success('Availability updated successfully');
-      } else {
-        toast.error('Failed to update availability');
-      }
+      setProducts(prev => [...prev, newProduct]);
+      toast.success('Product added successfully');
     } catch (error) {
-      console.error('Error updating availability:', error);
-      toast.error('Error updating availability');
+      console.error('Error adding product:', error);
+      toast.error('Error adding product');
     }
   };
 
   const handleEditDish = (id) => {
-    const dishToEdit = dishes.find((dish) => dish._id === id);
-    setEditDish(dishToEdit);
+    const productToEdit = products.find((product) => product._id === id);
+    setEditDish(productToEdit);
     setIsModalOpen(true);
   };
   
-  const handleSaveDish = (updatedDish) => {
-    setDishes(dishes.map((dish) => (dish._id === updatedDish._id ? updatedDish : dish)));
-    setEditDish(null);
+  const handleSaveDish = async (updatedProduct) => {
+    try {
+      setProducts(products.map((product) => 
+        (product._id === updatedProduct._id ? updatedProduct : product)
+      ));
+      setEditDish(null);
+      toast.success('Product updated successfully');
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('Error updating product');
+    }
   };
 
   const handleDeleteDish = async (id) => {
     try {
-      const response = await fetch(`https://fourtrip-server.onrender.com/api/activity/${id}`, {
-        method: 'DELETE',
+      const response = await fetch(`https://fourtrip-server.onrender.com/api/products/${id}`, {
+        method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_rest')}`
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token_partner_shop')}`
+        },
+        body: JSON.stringify({ is_deleted: true })
       });
       
-      const data = await response.json();
-      if (data.success) {
-        setDishes(dishes.filter((dish) => dish._id !== id));
-        toast.success('Activity deleted successfully');
+      if (response.ok) {
+        setProducts(products.filter((product) => product._id !== id));
+        toast.success('Product deleted successfully');
       } else {
-        toast.error('Failed to delete activity');
+        toast.error('Failed to delete product');
       }
     } catch (error) {
-      console.error('Error deleting activity:', error);
-      toast.error('Error deleting activity');
+      console.error('Error deleting product:', error);
+      toast.error('Error deleting product');
     }
   };
 
-  const filteredDishes = dishes.filter(dish => 
-    dish.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dish.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleToggleActive = async (id, newStatus) => {
+    try {
+      const response = await fetch(`https://fourtrip-server.onrender.com/api/products/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token_partner_shop')}`
+        },
+        body: JSON.stringify({ is_active: newStatus })
+      });
+      
+      if (response.ok) {
+        setProducts(products.map(product => 
+          product._id === id ? { ...product, is_active: newStatus } : product
+        ));
+        toast.success(`Product ${newStatus ? 'activated' : 'deactivated'} successfully`);
+      } else {
+        toast.error('Failed to update product status');
+      }
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      toast.error('Error updating product status');
+    }
+  };
+
+  const filteredProducts = products.filter(product => 
+    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -118,7 +126,7 @@ const DishManager = ({ dishes, setDishes }) => {
             <Search className="w-5 h-5 text-gray-400 mr-2" />
             <input
               type="text"
-              placeholder="Search activities..."
+              placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border-none focus:ring-0 outline-none pl-2"
@@ -133,7 +141,7 @@ const DishManager = ({ dishes, setDishes }) => {
               className="px-4 py-2 bg-green-500 text-white rounded-lg flex items-center hover:bg-green-600 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add New Activity
+              Add New Product
             </button>
           </div>
         </div>
@@ -142,40 +150,40 @@ const DishManager = ({ dishes, setDishes }) => {
       <table className="w-full">
         <thead>
           <tr className="border-b">
-            <th className="p-4 text-left">Title</th>
+            <th className="p-4 text-left">Name</th>
             <th className="p-4 text-left">Price</th>
-            <th className="p-4 text-left">Discount</th>
-            <th className="p-4 text-left">Availability</th>
+            <th className="p-4 text-left">Discounted Price</th>
+            <th className="p-4 text-left">Status</th>
             <th className="p-4 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredDishes.map((dish) => (
-            <tr key={dish._id} className="border-b">
-              <td className="p-4">{dish.title}</td>
-              <td className="p-4">${dish.price}</td>
-              <td className="p-4">{dish.discount_percentage}%</td>
-          
+          {filteredProducts.map((product) => (
+            <tr key={product._id} className="border-b">
+              <td className="p-4">{product.name}</td>
+              <td className="p-4">₹{product.price}</td>
+              <td className="p-4">₹{product.discounted_price || '-'}</td>
               <td className="p-4">
-                <div className="flex items-center">
-                  <div 
-                    className={`w-12 h-6 rounded-full p-1 cursor-pointer ${dish.available ? 'bg-green-500' : 'bg-gray-300'}`}
-                    onClick={() => toggleAvailability(dish._id)}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white transform transition-transform ${dish.available ? 'translate-x-6' : ''}`} />
+                <div 
+                  onClick={() => handleToggleActive(product._id, !product.is_active)}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer
+                    ${product.is_active ? 'bg-green-500' : 'bg-gray-300'}`}
+                >
+                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out
+                    ${product.is_active ? 'translate-x-6' : 'translate-x-0'}`}>
                   </div>
                 </div>
               </td>
               <td className="p-4">
                 <div className="flex space-x-2">
                   <button 
-                    onClick={() => handleDeleteDish(dish._id)} 
+                    onClick={() => handleDeleteDish(product._id)} 
                     className="p-1 text-red-500 hover:text-red-600"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                   <button 
-                    onClick={() => handleEditDish(dish._id)} 
+                    onClick={() => handleEditDish(product._id)} 
                     className="p-1 text-blue-500 hover:text-blue-600"
                   >
                     <Edit className="w-5 h-5" />

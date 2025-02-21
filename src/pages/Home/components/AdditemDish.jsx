@@ -4,36 +4,33 @@ import { toast } from 'react-toastify';
 
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    location: '',
+    name: '',
     description: '',
     price: '',
-    discount_percentage: '',
-    is_active: true,
+    discounted_price: '',
+    image_url: '',
     images: []
   });
 
   useEffect(() => {
     if (editDish) {
       setFormData({
-        title: editDish.title || '',
-        location: editDish.location || '',
+        name: editDish.name || '',
         description: editDish.description || '',
         price: editDish.price?.toString() || '',
-        discount_percentage: editDish.discount_percentage?.toString() || '',
-        is_active: editDish.is_active ?? true,
+        discounted_price: editDish.discounted_price?.toString() || '',
+        image_url: editDish.image_url || '',
         images: editDish.images || []
       });
-      const previewUrls = editDish.images?.map(image => image) || [];
+      const previewUrls = editDish.image_url ? [editDish.image_url] : [];
       setPreviewUrls(previewUrls);
     } else {
       setFormData({
-        title: '',
-        location: '',
+        name: '',
         description: '',
         price: '',
-        discount_percentage: '',
-        is_active: true,
+        discounted_price: '',
+        image_url: '',
         images: []
       });
       setPreviewUrls([]);
@@ -51,7 +48,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     const maxFiles = 85;
-    const remainingSlots = maxFiles - formData.images.length;
+    const remainingSlots = maxFiles - (formData.images?.length || 0);
     const allowedFiles = files.slice(0, remainingSlots);
 
     const newPreviewUrls = allowedFiles.map(file => URL.createObjectURL(file));
@@ -59,7 +56,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...allowedFiles]
+      images: [...(prev.images || []), ...allowedFiles]
     }));
   };
 
@@ -103,20 +100,20 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const apiEndpoint = 'https://fourtrip-server.onrender.com/api/activity';
-    const token = localStorage.getItem('token_partner_shop');
+    const apiEndpoint = 'https://fourtrip-server.onrender.com/api/products';
     
     const requestBody = {
-      title: formData.title,
-      location: formData.location,
+      name: formData.name,
       description: formData.description,
       price: Number(formData.price),
-      discount_percentage: Number(formData.discount_percentage),
-      is_active: formData.is_active,
-      images: formData.images
+      discounted_price: Number(formData.discounted_price),
+      image_url: formData.image_url,
+      createdBy: localStorage.getItem('id_partner_shop')
     };
 
     try {
+      const token = localStorage.getItem('token_partner_shop');
+      
       const response = await fetch(
         editDish ? `${apiEndpoint}/${editDish._id}` : apiEndpoint,
         {
@@ -131,12 +128,12 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
       const data = await response.json();
 
-      if (data.success) {
-        onAddItem(data.data);
+      if (response.ok) {
+        onAddItem(data);
         handleClose();
-        toast.success(editDish ? 'Item updated successfully' : 'Item added successfully');
+        toast.success(editDish ? 'Product updated successfully' : 'Product added successfully');
       } else {
-        toast.error(`Error: ${data.error}`);
+        toast.error(`Error: ${data.message || 'Failed to process request'}`);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -152,7 +149,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         <div className="relative w-full max-w-2xl rounded-xl bg-white p-8 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-800">
-              {editDish ? 'Edit Item' : 'Add New Item'}
+              {editDish ? 'Edit Product' : 'Add New Product'}
             </h2>
             <button 
               onClick={handleClose}
@@ -165,25 +162,12 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Title
+                Product Name
               </label>
               <input
                 type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                 required
               />
@@ -210,6 +194,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                 <input
                   type="number"
                   min="0"
+                  step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
@@ -219,14 +204,14 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Discount
+                  Discounted Price
                 </label>
                 <input
                   type="number"
                   min="0"
-                  max="100"
-                  value={formData.discount_percentage}
-                  onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
+                  step="0.01"
+                  value={formData.discounted_price}
+                  onChange={(e) => setFormData({ ...formData, discounted_price: e.target.value })}
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none"
                 />
               </div>
@@ -314,7 +299,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                 type="submit"
                 className="px-6 py-2.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
               >
-                {editDish ? 'Update Item' : 'Add Item'}
+                {editDish ? 'Update Product' : 'Add Product'}
               </button>
             </div>
           </form>
