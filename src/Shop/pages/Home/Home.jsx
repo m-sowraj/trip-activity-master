@@ -76,10 +76,10 @@ const Dashboard = () => {
       <div className="flex flex-1">
         <div className="w-64 bg-white border-r shadow-sm">
           <nav className="sticky top-0 space-y-2 p-4">
-            <NavLink icon={HomeIcon} label="Home" to="/" />
-            <NavLink icon={Utensils} label="Manage Listing" to="/dishes" />
-            <NavLink icon={MessageSquare} label="Reviews" to="/reviews" />
-            <NavLink icon={DollarSign} label="Payments" to="/payments" />
+            <NavLink icon={HomeIcon} label="Home" to="/shop/" />
+            <NavLink icon={Utensils} label="Manage Listing" to="/shop/listing" />
+            <NavLink icon={MessageSquare} label="Reviews" to="/shop/reviews" />
+            <NavLink icon={DollarSign} label="Payments" to="/shop/payments" />
           </nav>
         </div>
         

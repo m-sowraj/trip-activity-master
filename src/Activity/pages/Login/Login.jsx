@@ -10,7 +10,6 @@ const LoginComponent = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
-  const [category, setCategory] = useState('restaurant');
 
   const handleOtpChange = (index, value) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -28,26 +27,22 @@ const LoginComponent = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-
-    // POST METHOD
     fetch('https://fourtrip-server.onrender.com/api/commonauth/login', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            phone_number: phone,
+            phone_number:phone,
             password,
-            select_category: category,
-            reg_type: 'partner'
         }),
         })
         .then((response) => response.json())
         .then((data) => {
             console.log('Success:', data);
             if (data.message !== 'Invalid phone number or password') {
-                localStorage.setItem('token_partner_shop', data.token);
-                localStorage.setItem('id_partner_shop', data.data.token);
+                localStorage.setItem('token_partner_acti', data.token);
+                localStorage.setItem('id_partner_acti', data.data._id);
                 navigate('/');
                 setIsOtpView(true);
             }
@@ -63,7 +58,7 @@ const LoginComponent = () => {
   return (
     <div className="min-h-screen max-h-screen overflow-hidden flex flex-col bg-gradient-to-br from-teal-400 via-blue-400 to-blue-500">
       <Header />
-        <ToastContainer />
+      <ToastContainer />
       <div className="flex-1 flex items-center justify-center p-4 gap-10 h-full w-[80%] max-lg:w-[100%] m-auto">
         <div className='w-[35%] flex flex-col gap-4'>
             <div className="text-start mb-8 pl-10 w-full">
@@ -101,19 +96,7 @@ const LoginComponent = () => {
             {!isOtpView ? (
                 <form onSubmit={handleLogin}>
                 <div className="mb-4">
-                    <label className="block text-sm mb-1">Sign in as</label>
-                    <select
-                        className="bg-orange-50 outline-none rounded px-3 py-2 w-full"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                    >
-                        <option value="restaurant">Restaurant</option>
-                        <option value="shop">Shop</option>
-                        <option value="activities">Activities</option>
-                    </select>
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm mb-1">phone number</label>
+                    <label className="block text-sm mb-1">Enter your phone number</label>
                     <div className="flex">
                     {/* <select className="bg-orange-50 rounded-l px-2 py-2 border-r">
                         <option>+91</option>
@@ -131,7 +114,7 @@ const LoginComponent = () => {
                     </div>
                 </div>
                 <div className="mb-6">
-                    <label className="block text-sm mb-1">password</label>
+                    <label className="block text-sm mb-1">Enter your password</label>
                     <input
                     type="password"
                     className="bg-orange-50 outline-none rounded px-3 py-2 w-full"

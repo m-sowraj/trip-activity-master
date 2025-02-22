@@ -2,11 +2,15 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import LoginComponent from './pages/Login/Login';
-import SignUp from './pages/SignUp/SignUp';
-import Dashboard from './pages/Home/Home';
-import DishManager from './pages/Home/components/DishManager';
-import HomeContent from './pages/Home/components/HomeContent';
+import LoginComponent from './Shop/pages/Login/Login';
+import SignUp from './Shop/pages/SignUp/SignUp';
+import Dashboard from './Shop/pages/Home/Home';
+import DishManager from './Shop/pages/Home/components/DishManager';
+import HomeContent from './Shop/pages/Home/components/HomeContent';
+import ActivityDashboard from './Activity/pages/Home/Home';
+import ActivityDishManager from './Activity/pages/Home/components/DishManager';
+import ActivityHomeContent from './Activity/pages/Home/components/HomeContent';
+import ActivityBooking from './Activity/pages/Home/components/BookingDetails';
 
 const router = createBrowserRouter([
     {
@@ -18,7 +22,7 @@ const router = createBrowserRouter([
         element: <SignUp/>,
     },
     {
-        path: '/',
+        path: '/shop',
         element: <Dashboard/>,
         children: [
             {
@@ -26,7 +30,7 @@ const router = createBrowserRouter([
                 element: <HomeContent/>,
             },
             {
-                path: 'dishes',
+                path: 'listing',
                 element: <DishManager/>,
             },
             {
@@ -38,7 +42,33 @@ const router = createBrowserRouter([
                 element: <div>Payments Component</div>,
             },
         ]
-    }
+    },
+    {
+        path: '/activity',
+        element: <ActivityDashboard/>,
+        children: [
+            {
+                path: '',
+                element: <ActivityHomeContent/>,
+            },
+            {
+                path: 'listing',
+                element: <ActivityDishManager/>,
+            },
+            {
+                path: 'booking',
+                element: <ActivityBooking/>,
+            },
+            {
+                path: 'reviews',
+                element: <div>Reviews Component</div>,
+            },
+            {
+                path: 'payments',
+                element: <div>Payments Component</div>,
+            },
+        ]
+    },
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
