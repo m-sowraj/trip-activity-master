@@ -11,6 +11,10 @@ import ActivityDashboard from './Activity/pages/Home/Home';
 import ActivityDishManager from './Activity/pages/Home/components/DishManager';
 import ActivityHomeContent from './Activity/pages/Home/components/HomeContent';
 import ActivityBooking from './Activity/pages/Home/components/BookingDetails';
+import RestaurantDashboard from './Restaurants/pages/Home/Home';
+import RestaurantDishManager from './Restaurants/pages/Home/components/DishManager';
+import RestaurantHomeContent from './Restaurants/pages/Home/components/HomeContent';
+import RestaurantBooking from './Restaurants/pages/Home/components/BookingDetails';
 
 const router = createBrowserRouter([
     {
@@ -69,6 +73,32 @@ const router = createBrowserRouter([
             },
         ]
     },
+    {
+        path: '/restaurant',
+        element: <RestaurantDashboard/>,
+        children: [
+            {
+                path: '',
+                element: <RestaurantHomeContent/>,
+            },
+            {
+                path: 'listing',
+                element: <RestaurantDishManager/>,
+            },
+            {
+                path: 'booking',
+                element: <RestaurantBooking/>,
+            },
+            {
+                path: 'reviews',
+                element: <div>Reviews Component</div>,
+            },
+            {
+                path: 'payments',
+                element: <div>Payments Component</div>,
+            },
+        ]
+    }
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
