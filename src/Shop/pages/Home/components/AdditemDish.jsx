@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
+import shopAxios from '../../../../utils/shopaxios';
 
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const [formData, setFormData] = useState({
@@ -100,8 +101,6 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const apiEndpoint = 'https://fourtrip-server.onrender.com/api/products';
-    
     const requestBody = {
       name: formData.name,
       description: formData.description,
@@ -115,29 +114,13 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     };
 
     try {
-      const token = localStorage.getItem('token_partner_shop');
-      
-      const response = await fetch(
-        editDish ? `${apiEndpoint}/${editDish._id}` : apiEndpoint,
-        {
-          method: editDish ? 'PUT' : 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(requestBody)
-        }
-      );
+      const response = editDish 
+        ? await shopAxios.put(`/products/${editDish._id}`, requestBody)
+        : await shopAxios.post('/products', requestBody);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        onAddItem(data);
-        handleClose();
-        toast.success(editDish ? 'Product updated successfully' : 'Product added successfully');
-      } else {
-        toast.error(`Error: ${data.message || 'Failed to process request'}`);
-      }
+      onAddItem(response.data);
+      handleClose();
+      toast.success(editDish ? 'Product updated successfully' : 'Product added successfully');
     } catch (error) {
       console.error('Error:', error);
       toast.error('An error occurred while processing your request');

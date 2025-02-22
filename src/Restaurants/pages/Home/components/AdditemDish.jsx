@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { X, Upload, Plus, Minus } from "lucide-react";
 import { toast } from "react-toastify";
+import restaurantAxios from '../../../../utils/restaurantAxios';
 
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const [formData, setFormData] = useState({
@@ -141,72 +142,34 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();    
-    const token = localStorage.getItem('token_partner_rest');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const requestBody = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        price: Number(formData.price),
+        discounted_price: Number(formData.discounted_price),
+        image: formData.image,
+        partner_id: "677b52a71333f6a77e3456c8",
+      };
 
-    if (editDish) {
-      fetch(`https://fourtrip-server.onrender.com/api/dishes/${editDish._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          category: formData.category,
-          price: Number(formData.price),
-          discounted_price: Number(formData.discounted_price),
-          image: formData.image,
-          partner_id: "677b52a71333f6a77e3456c8",
-        }),
-      })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          onAddItem(data.data);
-          handleClose();
-          toast.success('Dish updated successfully');
-        } else {
-          toast.error('Error updating dish');
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error('Error updating dish');
-      });
-    } else {
-      fetch('https://fourtrip-server.onrender.com/api/dishes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          category: formData.category,
-          price: Number(formData.price),
-          discounted_price: Number(formData.discounted_price),
-          image: formData.image,
-          partner_id: "677b52a71333f6a77e3456c8",
-        }),
-      })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.success) {
-          onAddItem(data.data);
-          handleClose();
-          toast.success('Dish added successfully');
-        } else {
-          toast.error('Error adding dish');
-        }
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error('Error adding dish');
-      });
+      const response = editDish 
+        ? await restaurantAxios.put(`/dishes/${editDish._id}`, requestBody)
+        : await restaurantAxios.post('/dishes', requestBody);
+
+      if (response.data.success) {
+        onAddItem(response.data.data);
+        handleClose();
+        toast.success(editDish ? 'Dish updated successfully' : 'Dish added successfully');
+      } else {
+        toast.error(editDish ? 'Error updating dish' : 'Error adding dish');
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error processing request');
     }
   };
 

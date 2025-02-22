@@ -9,6 +9,7 @@ import {
 import React, { useEffect, useState } from "react";
 import AddItemModal from "./AdditemDish";
 import { toast } from "react-toastify";
+import activitiesAxios from '../../../../utils/activitiesAxios';
 
 const DishManager = () => {
   const [dishes, setDishes] = useState([]);
@@ -32,13 +33,12 @@ const DishManager = () => {
 
   const fetchDishes = async () => {
     try {
-      const response = await fetch("https://fourtrip-server.onrender.com/api/activity");
-      const data = await response.json();
-      setDishes(data.data);
+      const response = await activitiesAxios.get('/activity');
+      setDishes(response.data.data);
       setLoading(false);
     } catch (error) {
       console.error(error);
-      setError("Failed to fetch dishes");
+      setError("Failed to fetch activities");
       setLoading(false);
     }
   };
@@ -60,26 +60,19 @@ const DishManager = () => {
     setDishes([...dishes, newItem]);
   };
 
-  const toggleAvailability = (id, isAvailable) => {
-    setDishes(
-      dishes.map((dish) =>
-        dish._id === id ? { ...dish, status: !isAvailable } : dish
-      )
-    );
-    toast.success("Dish availability status updated successfully");
-
-    const token = localStorage.getItem("token_partner_acti");
-    
-    fetch(`https://fourtrip-server.onrender.com/api/activity/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ status: !isAvailable }),
-    })
-      .then((response) => response.json())
-      .catch((error) => console.error("Error:", error));
+  const toggleAvailability = async (id, isAvailable) => {
+    try {
+      await activitiesAxios.put(`/activity/${id}`, { status: !isAvailable });
+      setDishes(
+        dishes.map((dish) =>
+          dish._id === id ? { ...dish, status: !isAvailable } : dish
+        )
+      );
+      toast.success("Activity availability status updated successfully");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error updating activity status");
+    }
   };
 
   const handleEditDish = (id) => {
@@ -96,22 +89,15 @@ const DishManager = () => {
     setEditDish(null);
   };
 
-  const handleDeleteDish = (id) => {
-    const token = localStorage.getItem("token_partner_acti");
-    
-    fetch(`https://fourtrip-server.onrender.com/api/activity/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ is_deleted: true }),
-    })
-      .then((response) => response.json())
-      .then((data) => toast.success("Dish deleted successfully"))
-      .catch((error) => console.error("Error:", error));
-
-    setDishes(dishes.filter((dish) => dish._id !== id));
+  const handleDeleteDish = async (id) => {
+    try {
+      await activitiesAxios.put(`/activity/${id}`, { is_deleted: true });
+      setDishes(dishes.filter((dish) => dish._id !== id));
+      toast.success("Activity deleted successfully");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error deleting activity");
+    }
   };
 
   return (

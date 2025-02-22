@@ -46,8 +46,18 @@ const LoginComponent = () => {
         .then((data) => {
             console.log('Success:', data);
             if (data.message !== 'Invalid phone number or password') {
-                localStorage.setItem('token_partner_shop', data.token);
-                localStorage.setItem('id_partner_shop', data.data.token);
+                if (category === 'restaurant') {
+                    localStorage.setItem('token_partner_restaurant', data.token);
+                    localStorage.setItem('id_partner_restaurant', data.data._id);
+                }
+                else if (category === 'shop') {
+                    localStorage.setItem('token_partner_shop', data.token);
+                    localStorage.setItem('id_partner_shop', data.data._id);
+                } else if (category === 'activities') {
+                    localStorage.setItem('token_partner_activities', data.token);
+                    localStorage.setItem('id_partner_activities', data.data._id);
+                }
+
                 navigate('/');
                 setIsOtpView(true);
             }

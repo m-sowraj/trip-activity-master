@@ -13,6 +13,8 @@ import {
     LogOut
   } from 'lucide-react';
   import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
+  import shopAxios from '../../../../utils/shopaxios';
+  import { toast } from 'react-hot-toast';
   
   // Sample data for charts
   const earningsData = [
@@ -38,6 +40,16 @@ import {
   ];
 
 const HomeContent = () => {
+    const fetchStats = async () => {
+      try {
+        const response = await shopAxios.get('/stats');
+        // Update your state with the response data
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        toast.error('Error fetching stats');
+      }
+    };
+
     return (
       <div className="space-y-6 py-4 px-6">
         {/* Stats Card */}

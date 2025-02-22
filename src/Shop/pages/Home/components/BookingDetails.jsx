@@ -1,7 +1,19 @@
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import React from 'react'
+import shopAxios from '../../../../utils/shopaxios';
+import { toast } from 'react-hot-toast';
 
 const BookingsManager = ({ bookings, setBookings }) => {
+    const fetchBookings = async () => {
+      try {
+        const response = await shopAxios.get('/bookings');
+        setBookings(response.data);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        toast.error('Error fetching bookings');
+      }
+    };
+
     return (
       <div className="bg-white rounded-lg shadow w-full px-6">
         <div className="p-4 border-b">

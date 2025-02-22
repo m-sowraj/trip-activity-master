@@ -9,6 +9,7 @@ import {
 import React, { useState, useEffect } from "react";
 import AddItemModal from "./AdditemDish";
 import { toast } from "react-toastify";
+import restaurantAxios from '../../../../utils/restaurantAxios';
 
 const DishManager = () => {
   const [dishes, setDishes] = useState([]);
@@ -30,30 +31,22 @@ const DishManager = () => {
     fetchDishes();
   }, []);
 
-  const fetchDishes = () => {
-    const token = localStorage.getItem("token_partner_rest");
-    
-    fetch('https://fourtrip-server.onrender.com/api/dishes', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setDishes(data);
-        } else if (data.success && Array.isArray(data.data)) {
-          setDishes(data.data);
-        } else {
-          toast.error('Error fetching dishes');
-        }
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error:', error);
+  const fetchDishes = async () => {
+    try {
+      const response = await restaurantAxios.get('/dishes');
+      if (Array.isArray(response.data)) {
+        setDishes(response.data);
+      } else if (response.data.success && Array.isArray(response.data.data)) {
+        setDishes(response.data.data);
+      } else {
         toast.error('Error fetching dishes');
-        setIsLoading(false);
-      });
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error fetching dishes');
+      setIsLoading(false);
+    }
   };
 
   // Filter dishes based on search query
@@ -72,26 +65,19 @@ const DishManager = () => {
     setDishes([...dishes, newItem]);
   };
 
-  const toggleAvailability = (id, isActive) => {
-    setDishes(
-      dishes.map((dish) =>
-        dish._id === id ? { ...dish, availability: !isActive } : dish
-      )
-    );
-    toast.success("Dish availability status updated successfully");
-
-    const token = localStorage.getItem("token_partner_rest");
-    
-    fetch(`https://fourtrip-server.onrender.com/api/dishes/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ availability: !isActive }),
-    })
-      .then((response) => response.json())
-      .catch((error) => console.error("Error:", error));
+  const toggleAvailability = async (id, isActive) => {
+    try {
+      await restaurantAxios.put(`/dishes/${id}`, { availability: !isActive });
+      setDishes(
+        dishes.map((dish) =>
+          dish._id === id ? { ...dish, availability: !isActive } : dish
+        )
+      );
+      toast.success("Dish availability status updated successfully");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error updating dish status");
+    }
   };
 
   const handleEditDish = (id) => {
@@ -108,22 +94,15 @@ const DishManager = () => {
     setEditDish(null);
   };
 
-  const handleDeleteDish = (id) => {
-    const token = localStorage.getItem("token_partner_rest");
-    
-    fetch(`https://fourtrip-server.onrender.com/api/dishes/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ is_deleted: true }),
-    })
-      .then((response) => response.json())
-      .then((data) => toast.success("Dish deleted successfully"))
-      .catch((error) => console.error("Error:", error));
-
-    setDishes(dishes.filter((dish) => dish._id !== id));
+  const handleDeleteDish = async (id) => {
+    try {
+      await restaurantAxios.put(`/dishes/${id}`, { is_deleted: true });
+      setDishes(dishes.filter((dish) => dish._id !== id));
+      toast.success("Dish deleted successfully");
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error deleting dish");
+    }
   };
 
   return (

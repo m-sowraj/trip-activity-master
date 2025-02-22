@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { X, Upload, Plus, Minus } from "lucide-react";
 import { toast } from "react-toastify";
+import activitiesAxios from '../../../../utils/activitiesAxios';
 
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
   const [formData, setFormData] = useState({
@@ -176,123 +177,61 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();    
-    console.log(formData)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    console.log(formData);
 
-    if (editDish) {
-      // PUT request to update item in database
-      console.log("Editent",editDish)
+    try {
+      const requestBody = {
+        title: formData.name,
+        description: formData.description,
+        whatsincluded: formData.whatsincluded,
+        additional_info: {
+          duration: formData.duration,
+          agerequirement: formData.agerequirement,
+          dresscode: formData.dresscode,
+          accessibility: formData.accessibility,
+          difficulty: formData.difficulty
+        },
+        price: Number(formData.price),
+        slots: [formData.timeSlot],
+        discount_percentage: Number(formData.discount),
+        images: ["image3.jpg"]
+      };
 
-      fetch(`https://fourtrip-server.onrender.com/api/activity/${editDish._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_rest')}`
-          },
-          body: JSON.stringify({
-              title: formData.name,
-              description: formData.description,
-              whatsincluded: formData.whatsincluded,
-              additional_info: {
-                  duration: formData.duration,
-                  agerequirement: formData.agerequirement,
-                  dresscode: formData.dresscode,
-                  accessibility: formData.accessibility,
-                  difficulty: formData.difficulty
-              },
-              price: Number(formData.price),
-              slots: [formData.timeSlot],
-              discount_percentage: Number(formData.discount),
-              images: ["image3.jpg"]
-          }),
-          })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              console.log('Success:', data);
-              onAddItem(data.data);
-              handleClose();
-              setFormData({
-                name: "",
-                description: "",
-                // category: "",
-                price: "",
-                discount: "",
-                available: true,
-                images: [],
-                location: "",
-                included: "",
-                duration: "",
-                agerequirement: "",
-                dresscode: "",
-                accessibility: "",
-                difficulty: "",
-                timeSlot: "",
-                whatsincluded: [""],
-              });
-            }else {
-              console.log('Error:', data);
-              toast.error('Error adding item',data.error);
-            }
-          })
-          .catch((error) => console.error(error));
-    }
-    else {
-      // POST request to add item to database
-      fetch('https://fourtrip-server.onrender.com/api/activity', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_rest')}`
-          },
-          body: JSON.stringify({
-              title: formData.name,
-              description: formData.description,
-              whatsincluded: formData.whatsincluded,
-              additional_info: {
-                  duration: formData.duration,
-                  agerequirement: formData.agerequirement,
-                  dresscode: formData.dresscode,
-                  accessibility: formData.accessibility,
-                  difficulty: formData.difficulty
-              },
-              price: Number(formData.price),
-              slots: [formData.timeSlot],
-              discount_percentage: Number(formData.discount),
-              images: ["image3.jpg"]
-          }),
-          })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              console.log('Success:', data);
-              onAddItem(data.data);
-              handleClose();
-              setFormData({
-                name: "",
-                description: "",
-                // category: "",
-                price: "",
-                discount: "",
-                available: true,
-                images: [],
-                location: "",
-                included: "",
-                duration: "",
-                agerequirement: "",
-                dresscode: "",
-                accessibility: "",
-                difficulty: "",
-                timeSlot: "",
-                whatsincluded: [""],
-              });
-            }else {
-              console.log('Error:', data);
-              toast.error('Error adding item',data.error);
-            }
-          })
-          .catch((error) => console.error(error));
+      const response = editDish 
+        ? await activitiesAxios.put(`/activity/${editDish._id}`, requestBody)
+        : await activitiesAxios.post('/activity', requestBody);
+
+      if (response.data.success) {
+        console.log('Success:', response.data);
+        onAddItem(response.data.data);
+        handleClose();
+        setFormData({
+          name: "",
+          description: "",
+          price: "",
+          discount: "",
+          available: true,
+          images: [],
+          location: "",
+          included: "",
+          duration: "",
+          agerequirement: "",
+          dresscode: "",
+          accessibility: "",
+          difficulty: "",
+          timeSlot: "",
+          whatsincluded: [""],
+        });
+        toast.success(editDish ? 'Activity updated successfully' : 'Activity added successfully');
+      } else {
+        console.log('Error:', response.data);
+        toast.error('Error processing request', response.data.error);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error processing request');
     }
   };
 

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { toast } from "react-toastify";
+import activitiesAxios from '../../../../utils/activitiesAxios';
 
 const BookingsManager = () => {
   const [bookings, setBookings] = useState([]);
@@ -15,14 +16,8 @@ const BookingsManager = () => {
 
   const fetchBookings = async () => {
     try {
-      const token = localStorage.getItem("token_partner_acti");
-      const response = await fetch("https://fourtrip-server.onrender.com/api/activity/booking", {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      setBookings(data.data || []);
+      const response = await activitiesAxios.get('/activity/booking');
+      setBookings(response.data.data || []);
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -37,19 +32,11 @@ const BookingsManager = () => {
   // Handle status update
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
-      const token = localStorage.getItem("token_partner_acti");
-      const response = await fetch(`https://fourtrip-server.onrender.com/api/managebooking/${bookingId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: newStatus === "new booking" ? true : newStatus }),
+      const response = await activitiesAxios.put(`/managebooking/${bookingId}`, {
+        status: newStatus === "new booking" ? true : newStatus
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
+      if (response.data.success) {
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking._id === bookingId ? { ...booking, status: newStatus === "new booking" ? true : newStatus } : booking

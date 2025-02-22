@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Edit, Plus, Search, Trash2 } from 'lucide-re
 import React, { useState, useEffect } from 'react';
 import AddItemModal from './AdditemDish';
 import { toast } from 'react-toastify';
+import shopAxios from '../../../../utils/shopaxios';
 
 const DishManager = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,13 +18,8 @@ const DishManager = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('https://fourtrip-server.onrender.com/api/products?created_by=' + localStorage.getItem('id_partner_shop') + '&is_deleted=false');
-      const data = await response.json();
-      if (response.ok) {
-        setProducts(data);
-      } else {
-        toast.error('Failed to fetch products');
-      }
+      const response = await shopAxios.get(`/products?created_by=${localStorage.getItem('id_partner_shop')}&is_deleted=false`);
+      setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Error fetching products');
@@ -63,21 +59,9 @@ const DishManager = () => {
 
   const handleDeleteDish = async (id) => {
     try {
-      const response = await fetch(`https://fourtrip-server.onrender.com/api/products/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_shop')}`
-        },
-        body: JSON.stringify({ is_deleted: true })
-      });
-      
-      if (response.ok) {
-        setProducts(products.filter((product) => product._id !== id));
-        toast.success('Product deleted successfully');
-      } else {
-        toast.error('Failed to delete product');
-      }
+      await shopAxios.put(`/products/${id}`, { is_deleted: true });
+      setProducts(products.filter((product) => product._id !== id));
+      toast.success('Product deleted successfully');
     } catch (error) {
       console.error('Error deleting product:', error);
       toast.error('Error deleting product');
@@ -86,23 +70,11 @@ const DishManager = () => {
 
   const handleToggleActive = async (id, newStatus) => {
     try {
-      const response = await fetch(`https://fourtrip-server.onrender.com/api/products/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token_partner_shop')}`
-        },
-        body: JSON.stringify({ is_active: newStatus })
-      });
-      
-      if (response.ok) {
-        setProducts(products.map(product => 
-          product._id === id ? { ...product, is_active: newStatus } : product
-        ));
-        toast.success(`Product ${newStatus ? 'activated' : 'deactivated'} successfully`);
-      } else {
-        toast.error('Failed to update product status');
-      }
+      await shopAxios.put(`/products/${id}`, { is_active: newStatus });
+      setProducts(products.map(product => 
+        product._id === id ? { ...product, is_active: newStatus } : product
+      ));
+      toast.success(`Product ${newStatus ? 'activated' : 'deactivated'} successfully`);
     } catch (error) {
       console.error('Error updating product status:', error);
       toast.error('Error updating product status');
