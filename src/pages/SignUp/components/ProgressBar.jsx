@@ -1,40 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 const ProgressBar = ({ currentStep }) => {
+  const steps = [
+    { label: "Personal Info" },
+    { label: "Business Info" },
+    { label: "Security" }
+  ];
+
   return (
     <div className="flex flex-col items-center">
-      <h2 className="text-2xl font-semibold mb-6 text-white">Registration Form</h2>
-      <div className='w-full mt-2 text-white flex items-center text-sm relative'>
-            {/* Progree Line */}
-            <div className='w-[66%] m-auto h-1 bg-gray-300 absolute left-[15%]'></div>
-            <div className='w-[66%] h-1 bg-orange-500 absolute left-[15%]' style={{width: `${(currentStep - 1) * 33.33}%`}}></div>
+      <h2 className="text-2xl font-semibold mb-6">Registration Form</h2>
+      <div className='w-full mt-2 flex items-center text-sm relative'>
+        {/* Progress Line */}
+        <div className='w-full h-[2px] bg-gray-200 absolute'></div>
+        <div 
+          className='h-[2px] bg-orange-500 absolute transition-all duration-300' 
+          style={{width: `${(currentStep - 1) * 50}%`}}
+        ></div>
 
-            <div className='min-w-[33%] z-50 flex items-center justify-center'>
-                <div
-                className={`w-4 h-4 rounded-full ${
-                    currentStep === 1 ? 'bg-orange-500' : currentStep > 1 ? 'bg-orange-500' : 'bg-gray-300'
-                }`}
-                ></div>
-            </div>
-            <div className='min-w-[33%] z-50 flex items-center justify-center' >
-                <div
-                className={`w-4 h-4 rounded-full ${
-                    currentStep === 2 ? 'bg-orange-500' : currentStep > 2 ? 'bg-orange-500' : 'bg-gray-300'
-                }`}
-                ></div>
-            </div>
-            <div className='min-w-[33%] z-50 flex items-center justify-center'>
-                <div
-                className={`w-4 h-4 rounded-full ${
-                    currentStep === 3 ? 'bg-orange-500' : currentStep > 3 ? 'bg-orange-500' : 'bg-gray-300'
-                }`}
-                ></div>
-            </div>
-      </div>
-      <div className='w-full my-2 text-white flex items-start justify-between text-sm'>
-        <div className='w-[33%] text-center '>Personal Information</div>
-        <div className='w-[33%] text-center '>Upload Restaurant Images & Timings</div>
-        <div className='w-[33%] text-center '>Create password</div>
+        {/* Progress Points */}
+        {steps.map((step, index) => (
+          <div 
+            key={index} 
+            className='flex-1 flex flex-col items-center'
+          >
+            <div
+              className={`w-3 h-3 rounded-full border-2 mb-2 ${
+                currentStep === index + 1 
+                  ? 'bg-orange-500 border-orange-500' 
+                  : currentStep > index + 1 
+                    ? 'bg-orange-500 border-orange-500' 
+                    : 'bg-white border-gray-200'
+              }`}
+            ></div>
+            <span className="text-gray-500 text-xs">{step.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ const LoginComponent = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
+  const [category, setCategory] = useState('restaurant');
 
   const handleOtpChange = (index, value) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -35,8 +36,10 @@ const LoginComponent = () => {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            phone_number:phone,
+            phone_number: phone,
             password,
+            select_category: category,
+            reg_type: 'partner'
         }),
         })
         .then((response) => response.json())
@@ -98,7 +101,19 @@ const LoginComponent = () => {
             {!isOtpView ? (
                 <form onSubmit={handleLogin}>
                 <div className="mb-4">
-                    <label className="block text-sm mb-1">Enter your phone number</label>
+                    <label className="block text-sm mb-1">Sign in as</label>
+                    <select
+                        className="bg-orange-50 outline-none rounded px-3 py-2 w-full"
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                    >
+                        <option value="restaurant">Restaurant</option>
+                        <option value="shop">Shop</option>
+                        <option value="activities">Activities</option>
+                    </select>
+                </div>
+                <div className="mb-4">
+                    <label className="block text-sm mb-1">phone number</label>
                     <div className="flex">
                     {/* <select className="bg-orange-50 rounded-l px-2 py-2 border-r">
                         <option>+91</option>
@@ -116,7 +131,7 @@ const LoginComponent = () => {
                     </div>
                 </div>
                 <div className="mb-6">
-                    <label className="block text-sm mb-1">Enter your password</label>
+                    <label className="block text-sm mb-1">password</label>
                     <input
                     type="password"
                     className="bg-orange-50 outline-none rounded px-3 py-2 w-full"

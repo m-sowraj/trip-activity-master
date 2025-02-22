@@ -108,7 +108,10 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
       price: Number(formData.price),
       discounted_price: Number(formData.discounted_price),
       image_url: formData.image_url,
-      createdBy: localStorage.getItem('id_partner_shop')
+      createdBy: localStorage.getItem('id_partner_shop'),
+      is_active: true,
+      is_deleted: false,
+      location_id: localStorage.getItem('partner_shop_location_id')
     };
 
     try {
