@@ -49,16 +49,18 @@ const LoginComponent = () => {
                 if (category === 'restaurant') {
                     localStorage.setItem('token_partner_restaurant', data.token);
                     localStorage.setItem('id_partner_restaurant', data.data._id);
+                    navigate('/restaurant');
                 }
                 else if (category === 'shop') {
                     localStorage.setItem('token_partner_shop', data.token);
                     localStorage.setItem('id_partner_shop', data.data._id);
+                    navigate('/shop');
                 } else if (category === 'activities') {
                     localStorage.setItem('token_partner_activities', data.token);
                     localStorage.setItem('id_partner_activities', data.data._id);
+                    navigate('/activity');
                 }
 
-                navigate('/');
                 setIsOtpView(true);
             }
             else {

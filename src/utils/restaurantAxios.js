@@ -34,7 +34,7 @@ restaurantAxios.interceptors.response.use(
         localStorage.removeItem('id_partner_restaurant');
         
         // Redirect to login page
-        window.location.href = '/restaurant/login';
+        window.location.href = '/login';
       }
       
       // Return error message from response if available

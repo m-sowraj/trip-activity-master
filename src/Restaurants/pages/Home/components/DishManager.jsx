@@ -20,10 +20,7 @@ const DishManager = () => {
 
   const filters = [
     "Veg",
-    "Non-Veg",
-    "Bestseller",
-    "Spicy",
-    "No onion or garlic",
+    "Non-Veg"
   ];
 
   // Fetch dishes when component mounts
@@ -67,10 +64,10 @@ const DishManager = () => {
 
   const toggleAvailability = async (id, isActive) => {
     try {
-      await restaurantAxios.put(`/dishes/${id}`, { availability: !isActive });
+      await restaurantAxios.put(`/dishes/${id}`, { is_active: !isActive });
       setDishes(
         dishes.map((dish) =>
-          dish._id === id ? { ...dish, availability: !isActive } : dish
+          dish._id === id ? { ...dish, is_active: !isActive } : dish
         )
       );
       toast.success("Dish availability status updated successfully");
@@ -180,13 +177,13 @@ const DishManager = () => {
                       <div className="flex items-center">
                         <div
                           className={`w-12 h-6 rounded-full p-1 cursor-pointer ${
-                            dish.availability ? "bg-green-500" : "bg-gray-300"
+                            dish.is_active ? "bg-green-500" : "bg-gray-300"
                           }`}
-                          onClick={() => toggleAvailability(dish._id, dish.availability)}
+                          onClick={() => toggleAvailability(dish._id, dish.is_active)}
                         >
                           <div
                             className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                              dish.availability ? "translate-x-6" : ""
+                              dish.is_active ? "translate-x-6" : ""
                             }`}
                           />
                         </div>

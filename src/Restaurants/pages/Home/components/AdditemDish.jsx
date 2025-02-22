@@ -22,7 +22,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         category: editDish.category,
         price: editDish.price,
         discounted_price: editDish.discounted_price,
-        image: editDish.image,
+        image_url: editDish.image_url,
         is_active: editDish.is_active,
       });
     } else {
@@ -152,8 +152,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         category: formData.category,
         price: Number(formData.price),
         discounted_price: Number(formData.discounted_price),
-        image: formData.image,
-        partner_id: "677b52a71333f6a77e3456c8",
+        image_url: formData.image,
       };
 
       const response = editDish 
@@ -277,7 +276,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                   <input
                     name="image"
                     type="text"
-                    value={formData.image}
+                    value={formData.image_url}
                     onChange={handleChange}
                     className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                     placeholder="Enter image URL"
