@@ -9,7 +9,7 @@ const shopAxios = axios.create({
 // Add request interceptor to add token to all requests
 shopAxios.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token_partner_activities');
+    const token = localStorage.getItem('token_partner_shop');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,8 +30,8 @@ shopAxios.interceptors.response.use(
       // Handle 401 Unauthorized responses
       if (error.response.status === 401) {
         // Clear local storage
-        localStorage.removeItem('token_partner_activities');
-        localStorage.removeItem('id_partner_activities');
+        localStorage.removeItem('token_partner_shop');
+        localStorage.removeItem('token_partner_shop');
         
         // Redirect to login page
         window.location.href = '/login';
