@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Eye, EyeOff, Upload } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Eye, EyeOff, Upload, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
 import { toast, ToastContainer } from "react-toastify";
@@ -7,6 +7,10 @@ import { toast, ToastContainer } from "react-toastify";
 const PartnerRegistration = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [locations, setLocations] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+  const [filteredLocations, setFilteredLocations] = useState([]);
   const [formData, setFormData] = useState({
     businessName: "",
     ownerName: "",
@@ -29,11 +33,31 @@ const PartnerRegistration = () => {
     },
     openingTime: "",
     closingTime: "",
-    images: []
+    images: [],
+    location_id: ""
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    fetch('https://fourtrip-server.onrender.com/api/locations/dropdown/list')
+      .then(response => response.json())
+      .then(data => {
+        setLocations(data);
+      })
+      .catch(error => {
+        console.error('Error fetching locations:', error);
+        toast.error('Failed to load locations');
+      });
+  }, []);
+
+  useEffect(() => {
+    const filtered = locations.filter(location => 
+      location.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredLocations(filtered);
+  }, [searchTerm, locations]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -64,7 +88,7 @@ const PartnerRegistration = () => {
     if (currentStep === 1) {
       if (!formData.businessName || !formData.ownerName || !formData.email || 
           !formData.phone || !formData.category || !formData.address || 
-          !formData.city || !formData.pincode) {
+          !formData.city || !formData.pincode || !formData.location_id) {
         toast.error("Please fill all the fields");
         return;
       }
@@ -100,6 +124,7 @@ const PartnerRegistration = () => {
         address: formData.address,
         city: formData.city,
         pincode: formData.pincode,
+        location_id: formData.location_id,
         isActive: false,
         isNew: true,
       }),
@@ -128,6 +153,82 @@ const PartnerRegistration = () => {
       setCurrentStep(currentStep - 1);
     }
   };
+
+  const handleLocationSelect = (location) => {
+    setFormData(prev => ({
+      ...prev,
+      location_id: location._id
+    }));
+    setIsLocationDropdownOpen(false);
+  };
+
+  const renderLocationDropdown = () => (
+    <div className="relative location-dropdown">
+      <label className="block text-sm mb-1">Location</label>
+      <div 
+        className="w-full px-4 py-2 rounded bg-orange-50 cursor-pointer flex justify-between items-center"
+        onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+      >
+        <span className={`${!formData.location_id ? 'text-gray-400' : 'text-gray-700'}`}>
+          {formData.location_id 
+            ? locations.find(l => l._id === formData.location_id)?.name 
+            : "Select a location"}
+        </span>
+        <svg 
+          className={`w-4 h-4 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {isLocationDropdownOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                className="w-full pl-8 pr-4 py-2 rounded bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                placeholder="Search locations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto">
+            {filteredLocations.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                No locations found
+              </div>
+            ) : (
+              filteredLocations.map(location => (
+                <div
+                  key={location._id}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLocationSelect(location);
+                  }}
+                >
+                  <span>{location.name}</span>
+                  {location.type && (
+                    <span className="text-xs bg-gray-200 px-2 py-1 rounded-full">
+                      {location.type}
+                    </span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const renderStepOne = () => (
     <div className="space-y-4">
@@ -188,6 +289,7 @@ const PartnerRegistration = () => {
           <option value="activities">Activities</option>
         </select>
       </div>
+      {renderLocationDropdown()}
       <div>
         <label className="block text-sm mb-1">Address</label>
         <input
@@ -363,6 +465,20 @@ const PartnerRegistration = () => {
       </div>
     </div>
   );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const dropdown = document.querySelector('.location-dropdown');
+      if (isLocationDropdownOpen && dropdown && !dropdown.contains(event.target)) {
+        setIsLocationDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isLocationDropdownOpen]);
 
   return (
     <div className="min-h-fit bg-white p-6 rounded-xl">
