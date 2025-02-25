@@ -23,17 +23,12 @@ const PartnerRegistration = () => {
     password: "",
     confirmPassword: "",
     businessHours: {
-      monday: false,
-      tuesday: false,
-      wednesday: false,
-      thursday: false,
-      friday: false,
-      saturday: false,
-      sunday: false,
+      days: [],
+      openingTime: "",
+      closingTime: "",
     },
-    openingTime: "",
-    closingTime: "",
-    images: [],
+    image_url: [],
+    logo_url: "",
     location_id: ""
   });
 
@@ -72,16 +67,53 @@ const PartnerRegistration = () => {
       ...prev,
       businessHours: {
         ...prev.businessHours,
-        [day]: !prev.businessHours[day]
+        days: prev.businessHours.days.includes(day)
+          ? prev.businessHours.days.filter(d => d !== day)
+          : [...prev.businessHours.days, day]
       }
     }));
   };
 
-  const handleImageUpload = (files) => {
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...Array.from(files)]
-    }));
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('https://fourtrip-server.onrender.com/api/upload/single', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      return data.fileUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+      return null;
+    }
+  };
+
+  const handleImageUpload = async (files) => {
+    const uploadPromises = Array.from(files).map(file => uploadImage(file));
+    try {
+      const urls = await Promise.all(uploadPromises);
+      setFormData(prev => ({
+        ...prev,
+        image_url: [...prev.image_url, ...urls.filter(url => url !== null)]
+      }));
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast.error('Failed to upload some images');
+    }
+  };
+
+  const handleLogoUpload = async (file) => {
+    const url = await uploadImage(file);
+    if (url) {
+      setFormData(prev => ({
+        ...prev,
+        logo_url: url
+      }));
+    }
   };
 
   const handleContinue = () => {
@@ -107,27 +139,31 @@ const PartnerRegistration = () => {
   };
 
   const handleSubmit = () => {
-    // Your API call here
+    const submitData = {
+      business_name: formData.businessName,
+      owner_name: formData.ownerName,
+      email: formData.email,
+      phone_number: formData.phone,
+      password: formData.password,
+      reg_type: 'partner',
+      select_category: formData.category,
+      address: formData.address,
+      city: formData.city,
+      pincode: formData.pincode,
+      location_id: formData.location_id,
+      businessHours: formData.businessHours,
+      image_url: formData.image_url,
+      logo_url: formData.logo_url,
+      isActive: false,
+      isNew: true,
+    };
+
     fetch('https://fourtrip-server.onrender.com/api/commonauth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        business_name: formData.businessName,
-        owner_name: formData.ownerName,
-        email: formData.email,
-        phone_number: formData.phone,
-        password: formData.password,
-        reg_type: 'partner',
-        select_category: formData.category,
-        address: formData.address,
-        city: formData.city,
-        pincode: formData.pincode,
-        location_id: formData.location_id,
-        isActive: false,
-        isNew: true,
-      }),
+      body: JSON.stringify(submitData),
     })
     .then(response => response.json())
     .then(data => {
@@ -331,6 +367,33 @@ const PartnerRegistration = () => {
   const renderStepTwo = () => (
     <div className="space-y-6">
       <div>
+        <h3 className="text-lg font-medium mb-4">Upload Business Logo</h3>
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4">
+          <input
+            type="file"
+            className="hidden"
+            id="logoUpload"
+            onChange={(e) => handleLogoUpload(e.target.files[0])}
+            accept="image/*"
+          />
+          <label 
+            htmlFor="logoUpload" 
+            className="cursor-pointer flex flex-col items-center"
+          >
+            <Upload className="w-8 h-8 text-gray-400 mb-2" />
+            <span className="text-sm text-gray-600">Upload Business Logo</span>
+          </label>
+        </div>
+        {formData.logo_url && (
+          <div className="mb-4">
+            <img
+              src={formData.logo_url}
+              alt="Business Logo"
+              className="w-24 h-24 object-cover rounded"
+            />
+          </div>
+        )}
+
         <h3 className="text-lg font-medium mb-4">Upload Restaurant Images</h3>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
           <input
@@ -352,14 +415,14 @@ const PartnerRegistration = () => {
         </div>
 
         {/* Preview uploaded images */}
-        {formData.images.length > 0 && (
+        {formData.image_url.length > 0 && (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">Uploaded Images ({formData.images.length})</h4>
+            <h4 className="text-sm font-medium mb-2">Uploaded Images ({formData.image_url.length})</h4>
             <div className="grid grid-cols-3 gap-4">
-              {formData.images.map((image, index) => (
+              {formData.image_url.map((image, index) => (
                 <div key={index} className="relative group">
                   <img
-                    src={URL.createObjectURL(image)}
+                    src={image}
                     alt={`Upload ${index + 1}`}
                     className="w-full h-24 object-cover rounded"
                   />
@@ -367,7 +430,7 @@ const PartnerRegistration = () => {
                     onClick={() => {
                       setFormData(prev => ({
                         ...prev,
-                        images: prev.images.filter((_, i) => i !== index)
+                        image_url: prev.image_url.filter((_, i) => i !== index)
                       }));
                     }}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 
@@ -387,10 +450,10 @@ const PartnerRegistration = () => {
       <div>
         <h3 className="text-lg font-medium mb-2">Business Hours</h3>
         <div className="grid grid-cols-7 gap-2 mb-4">
-          {Object.keys(formData.businessHours).map((day) => (
+          {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
             <button
               key={day}
-              className={`p-2 rounded ${formData.businessHours[day] ? 'bg-emerald-400 text-white' : 'bg-gray-200'}`}
+              className={`p-2 rounded ${formData.businessHours.days.includes(day) ? 'bg-emerald-400 text-white' : 'bg-gray-200'}`}
               onClick={() => handleDayToggle(day)}
             >
               {day.slice(0,3)}
@@ -404,7 +467,7 @@ const PartnerRegistration = () => {
               type="time"
               name="openingTime"
               className="w-full px-4 py-2 rounded bg-orange-50"
-              value={formData.openingTime}
+              value={formData.businessHours.openingTime}
               onChange={handleInputChange}
             />
           </div>
@@ -414,7 +477,7 @@ const PartnerRegistration = () => {
               type="time"
               name="closingTime"
               className="w-full px-4 py-2 rounded bg-orange-50"
-              value={formData.closingTime}
+              value={formData.businessHours.closingTime}
               onChange={handleInputChange}
             />
           </div>
