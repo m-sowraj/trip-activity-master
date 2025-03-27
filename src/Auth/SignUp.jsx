@@ -1,6 +1,6 @@
 import React from 'react'
-import Header from './../../components/Header'
-import Footer from './../../components/Footer'
+import Header from '../Shop/components/Header'
+import Footer from '../Shop/components/Footer'
 import PartnerRegistration from './components/Registeration'
 
 function SignUp() {

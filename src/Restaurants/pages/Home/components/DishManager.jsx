@@ -9,19 +9,17 @@ import {
 import React, { useState, useEffect } from "react";
 import AddItemModal from "./AdditemDish";
 import { toast } from "react-toastify";
-import restaurantAxios from '../../../../utils/restaurantAxios';
-
+import axios from "axios";
+import { useNavigate } from "react-router-dom/dist";
 const DishManager = () => {
+  const navigate = useNavigate();
   const [dishes, setDishes] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editDish, setEditDish] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const filters = [
-    "Veg",
-    "Non-Veg"
-  ];
+  const filters = ["Veg", "Non-Veg"];
 
   // Fetch dishes when component mounts
   useEffect(() => {
@@ -29,19 +27,23 @@ const DishManager = () => {
   }, []);
 
   const fetchDishes = async () => {
+    const id = localStorage.getItem("roleid");
     try {
-      const response = await restaurantAxios.get('/dishes');
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/dish?restaurant_id=${id}`
+      );
+      console.log("Consoling the dishes", response.data);
       if (Array.isArray(response.data)) {
         setDishes(response.data);
       } else if (response.data.success && Array.isArray(response.data.data)) {
         setDishes(response.data.data);
       } else {
-        toast.error('Error fetching dishes');
+        toast.error("Error fetching dishes");
       }
       setIsLoading(false);
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error fetching dishes');
+      console.error("Error:", error);
+      toast.error("Error fetching dishes");
       setIsLoading(false);
     }
   };
@@ -49,7 +51,7 @@ const DishManager = () => {
   // Filter dishes based on search query
   const filteredDishes = dishes.filter((dish) => {
     if (!searchQuery) return true;
-    
+
     const searchTerm = searchQuery.toLowerCase();
     return (
       dish.name?.toLowerCase().includes(searchTerm) ||
@@ -62,18 +64,48 @@ const DishManager = () => {
     setDishes([...dishes, newItem]);
   };
 
-  const toggleAvailability = async (id, isActive) => {
+  const toggleAvailability = async (id, is_deleted) => {
     try {
-      await restaurantAxios.put(`/dishes/${id}`, { is_active: !isActive });
-      setDishes(
-        dishes.map((dish) =>
-          dish._id === id ? { ...dish, is_active: !isActive } : dish
+      let token = null;
+      const categories = ["restaurant", "shop", "activities"];
+
+      for (const category of categories) {
+        const storedToken = localStorage.getItem(`token_partner_${category}`);
+        if (storedToken) {
+          token = storedToken;
+          break;
+        }
+      }
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      setDishes((prevDishes) =>
+        prevDishes.map((dish) =>
+          dish._id === id ? { ...dish, is_deleted: !is_deleted } : dish
         )
       );
+
+      await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/dish/${id}`,
+        { is_deleted: !is_deleted },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       toast.success("Dish availability status updated successfully");
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error updating dish status");
+      setDishes((prevDishes) =>
+        prevDishes.map((dish) =>
+          dish._id === id ? { ...dish, is_deleted: is_deleted } : dish
+        )
+      );
     }
   };
 
@@ -93,8 +125,30 @@ const DishManager = () => {
 
   const handleDeleteDish = async (id) => {
     try {
-      await restaurantAxios.put(`/dishes/${id}`, { is_deleted: true });
-      setDishes(dishes.filter((dish) => dish._id !== id));
+      let token = null;
+      const categories = ["restaurant", "shop", "activities"];
+
+      for (const category of categories) {
+        const storedToken = localStorage.getItem(`token_partner_${category}`);
+        if (storedToken) {
+          token = storedToken;
+          break;
+        }
+      }
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      await axios.delete(
+        `${process.env.REACT_APP_BASE_URL}/dish/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchDishes();
       toast.success("Dish deleted successfully");
     } catch (error) {
       console.error("Error:", error);
@@ -165,48 +219,54 @@ const DishManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredDishes.map((dish, index) => (
-                  dish.is_deleted ? null :
-                  <tr key={dish._id} className="border-b">
-                    <td className="p-4">{index+1}</td>
-                    <td className="p-4">{dish.name}</td>
-                    <td className="p-4">{dish.price}</td>
-                    <td className="p-4">{dish.discounted_price}</td>
-                    <td className="p-4">{dish.category}</td>
-                    <td className="p-4">
-                      <div className="flex items-center">
-                        <div
-                          className={`w-12 h-6 rounded-full p-1 cursor-pointer ${
-                            dish.is_active ? "bg-green-500" : "bg-gray-300"
-                          }`}
-                          onClick={() => toggleAvailability(dish._id, dish.is_active)}
-                        >
+                {filteredDishes.map((dish, index) =>
+                  (
+                    <tr key={dish._id} className="border-b">
+                      <td className="p-4">{index + 1}</td>
+                      <td className="p-4">{dish.name}</td>
+                      <td className="p-4">{dish.price}</td>
+                      <td className="p-4">{dish.discounted_price}</td>
+                      <td className="p-4">{dish.category}</td>
+                      <td className="p-4">
+                        <div className="flex items-center">
                           <div
-                            className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                              dish.is_active ? "translate-x-6" : ""
+                            className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-all ${
+                              !dish.is_deleted ? "bg-green-500" : "bg-gray-300"
                             }`}
-                          />
+                            onClick={() =>
+                              toggleAvailability(dish._id, dish.is_deleted)
+                            }
+                          >
+                            <div
+                              className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
+                                !dish.is_deleted
+                                  ? "translate-x-6"
+                                  : "translate-x-0"
+                              }`}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleDeleteDish(dish._id)}
-                          className="p-1 text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => handleEditDish(dish._id)}
-                          className="p-1 text-blue-500 hover:text-blue-600"
-                        >
-                          <Edit className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleDeleteDish(dish._id)}
+                            className="p-1 text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleEditDish(dish._id)}
+                            className="p-1 text-blue-500 hover:text-blue-600"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                )}
               </tbody>
             </table>
 
@@ -235,7 +295,7 @@ const DishManager = () => {
       <AddItemModal
         isOpen={isModalOpen}
         onClose={() => {
-          setIsModalOpen(false);
+          setIsModalOpen(!isModalOpen);
           setEditDish(null);
         }}
         onAddItem={(dish) => {

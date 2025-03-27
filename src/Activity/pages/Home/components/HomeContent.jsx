@@ -13,8 +13,8 @@ import {
     LogOut
   } from 'lucide-react';
   import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
-  import activitiesAxios from '../../../../utils/activitiesAxios';
   import { toast } from 'react-hot-toast';
+import axios from 'axios';
   
   // Sample data for charts
   const earningsData = [
@@ -42,7 +42,7 @@ import {
 const HomeContent = () => {
     const fetchStats = async () => {
       try {
-        const response = await activitiesAxios.get('/stats');
+        const response = await axios.get('/stats');
         // Update your state with the response data
       } catch (error) {
         console.error('Error fetching stats:', error);

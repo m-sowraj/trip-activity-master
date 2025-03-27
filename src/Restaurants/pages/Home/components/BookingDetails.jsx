@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { toast } from "react-toastify";
-import restaurantAxios from '../../../../utils/restaurantAxios';
+import axios from 'axios';
 
 const BookingsManager = () => {
   const [bookings, setBookings] = useState([]);
@@ -17,7 +17,7 @@ const BookingsManager = () => {
 
   const fetchBookings = async () => {
     try {
-      const response = await restaurantAxios.get('/managebooking');
+      const response = await axios.get('/managebooking');
       setBookings(response.data || []);
       setLoading(false);
     } catch (error) {
@@ -54,7 +54,7 @@ const BookingsManager = () => {
   // Handle status update
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
-      const response = await restaurantAxios.put(`/managebooking/${bookingId}`, {
+      const response = await axios.put(`/managebooking/${bookingId}`, {
         status: newStatus === "new booking" ? true : newStatus
       });
 

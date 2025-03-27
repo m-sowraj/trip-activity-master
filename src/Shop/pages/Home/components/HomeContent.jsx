@@ -1,22 +1,8 @@
 import React from 'react'
-import { 
-    Home, 
-    Utensils, 
-    Calendar, 
-    MessageSquare, 
-    DollarSign,
-    Search,
-    Plus,
-    ChevronLeft,
-    ChevronRight,
-    Settings,
-    LogOut
-  } from 'lucide-react';
   import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
-  import shopAxios from '../../../../utils/shopaxios';
   import { toast } from 'react-hot-toast';
+import axios from 'axios';
   
-  // Sample data for charts
   const earningsData = [
     { month: 'Jan', value: 50 },
     { month: 'Feb', value: 40 },
@@ -42,7 +28,7 @@ import {
 const HomeContent = () => {
     const fetchStats = async () => {
       try {
-        const response = await shopAxios.get('/stats');
+        const response = await axios.get('/stats');
         // Update your state with the response data
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -68,7 +54,6 @@ const HomeContent = () => {
           </div>
         </div>
   
-        {/* Charts */}
         <div className="grid grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-medium mb-4">Orders Fulfilled</h3>

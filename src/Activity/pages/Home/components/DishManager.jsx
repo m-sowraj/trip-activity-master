@@ -9,9 +9,11 @@ import {
 import React, { useEffect, useState } from "react";
 import AddItemModal from "./AdditemDish";
 import { toast } from "react-toastify";
-import activitiesAxios from '../../../../utils/activitiesAxios';
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const DishManager = () => {
+  const navigate = useNavigate();
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,8 +35,10 @@ const DishManager = () => {
 
   const fetchDishes = async () => {
     try {
-      const response = await activitiesAxios.get('/activity');
-      setDishes(response.data.data);
+      const response = await axios.get(
+        `${process.env.REACT_APP_BASE_URL}/task`
+      );
+      setDishes(response.data);
       setLoading(false);
     } catch (error) {
       console.error(error);
@@ -46,7 +50,6 @@ const DishManager = () => {
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
-  // Filter dishes based on search query
   const filteredDishes = dishes.filter((dish) => {
     const searchTerm = searchQuery.toLowerCase();
     return (
@@ -60,12 +63,36 @@ const DishManager = () => {
     setDishes([...dishes, newItem]);
   };
 
-  const toggleAvailability = async (id, isAvailable) => {
+  const toggleAvailability = async (id, is_deleted) => {
     try {
-      await activitiesAxios.put(`/activity/${id}`, { status: !isAvailable });
+      let token = null;
+      const categories = ["restaurant", "shop", "activities"];
+      for (const category of categories) {
+        const storedToken = localStorage.getItem(`token_partner_${category}`);
+        if (storedToken) {
+          token = storedToken;
+          break;
+        }
+      }
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      await axios.put(
+        `${process.env.REACT_APP_BASE_URL}/task/${id}`,
+        {
+          is_deleted: !is_deleted,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setDishes(
         dishes.map((dish) =>
-          dish._id === id ? { ...dish, status: !isAvailable } : dish
+          dish._id === id ? { ...dish, is_deleted: !is_deleted } : dish
         )
       );
       toast.success("Activity availability status updated successfully");
@@ -83,15 +110,38 @@ const DishManager = () => {
   };
 
   const handleSaveDish = (updatedDish) => {
-    setDishes(
-      dishes.map((dish) => (dish._id === updatedDish._id ? updatedDish : dish))
-    );
+    fetchDishes();
     setEditDish(null);
   };
 
   const handleDeleteDish = async (id) => {
     try {
-      await activitiesAxios.put(`/activity/${id}`, { is_deleted: true });
+      let token = null;
+      const categories = ["restaurant", "shop", "activities"];
+      // requestBody.shop_id = id;
+      for (const category of categories) {
+        const storedToken = localStorage.getItem(`token_partner_${category}`);
+        if (storedToken) {
+          token = storedToken;
+          break;
+        }
+      }
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+      await axios.is_deleted(
+        `${process.env.REACT_APP_BASE_URL}/task/${id}`,
+        {
+          is_deleted: true,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setDishes(dishes.filter((dish) => dish._id !== id));
       toast.success("Activity deleted successfully");
     } catch (error) {
@@ -156,23 +206,24 @@ const DishManager = () => {
           </thead>
           <tbody>
             {filteredDishes.map((dish, index) => (
-              dish.is_deleted ? null :
               <tr key={dish._id} className="border-b">
-                <td className="p-4">{index+1}</td>
-                <td className="p-4">{dish.title}</td>
+                <td className="p-4">{index + 1}</td>
+                <td className="p-4">{dish.name}</td>
                 <td className="p-4">{dish.price}</td>
                 <td className="p-4">{dish.discount_percentage}%</td>
                 <td className="p-4">
                   <div className="flex items-center">
                     <div
                       className={`w-12 h-6 rounded-full p-1 cursor-pointer ${
-                        dish.status ? "bg-green-500" : "bg-gray-300"
+                        !dish.is_deleted ? "bg-green-500" : "bg-gray-300"
                       }`}
-                      onClick={() => toggleAvailability(dish._id,dish.status)}
+                      onClick={() =>
+                        toggleAvailability(dish._id, dish.is_deleted)
+                      }
                     >
                       <div
                         className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                          dish.status ? "translate-x-6" : ""
+                          !dish.is_deleted ? "translate-x-6" : ""
                         }`}
                       />
                     </div>

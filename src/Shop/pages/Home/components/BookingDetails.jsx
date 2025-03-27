@@ -1,12 +1,12 @@
+import axios from 'axios';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import React from 'react'
-import shopAxios from '../../../../utils/shopaxios';
 import { toast } from 'react-hot-toast';
 
 const BookingsManager = ({ bookings, setBookings }) => {
     const fetchBookings = async () => {
       try {
-        const response = await shopAxios.get('/bookings');
+        const response = await axios.get('/bookings');
         setBookings(response.data);
       } catch (error) {
         console.error('Error fetching bookings:', error);

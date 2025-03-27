@@ -1,156 +1,169 @@
 import React, { useRef, useState, useEffect } from "react";
 import { X, Upload, Plus, Minus } from "lucide-react";
 import { toast } from "react-toastify";
-import activitiesAxios from '../../../../utils/activitiesAxios';
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    // category: "",
     price: "",
     discount: "",
     available: true,
-    images: [],
-    location: "",
-    included: "",
+    image_url: [],
     duration: "",
     agerequirement: "",
     dresscode: "",
     accessibility: "",
     difficulty: "",
-    timeSlot: "",
+    timeSlot: [],
     whatsincluded: [""],
   });
+
+  const fileInputRef = useRef(null);
+  const [previewUrls, setPreviewUrls] = useState([]);
+
+  // Initialize form data when editDish changes
   useEffect(() => {
     if (editDish) {
       console.log(editDish);
       setFormData({
-        name: editDish.title,
+        name: editDish.name,
         description: editDish.description,
-        // category: editDish.category,
         price: editDish.price,
         discount: editDish.discount_percentage,
         available: true,
-        images: [],
-        location: editDish.location,
-        included: editDish.whatsincluded,
-        
-          duration: editDish.additional_info.duration,
-          agerequirement: editDish.additional_info.agerequirement,
-          dresscode: editDish.additional_info.dresscode,
-          accessibility: editDish.additional_info.accessibility,
-          difficulty: editDish.additional_info.difficulty,
-          timeSlot: editDish.slots[0],
-          whatsincluded: editDish.whatsincluded.length ? editDish.whatsincluded : [""],
+        image_url: editDish.image_url || [],
+        duration: editDish.additional_info?.duration || "",
+        agerequirement: editDish.additional_info?.agerequirement || "",
+        dresscode: editDish.additional_info?.dresscode || "",
+        accessibility: editDish.additional_info?.accessibility || "",
+        difficulty: editDish.additional_info?.difficulty || "",
+        timeSlot: editDish.slots || [],
+        whatsincluded: editDish.whatsincluded?.length
+          ? editDish.whatsincluded
+          : [""],
       });
-      // const previewUrls = editDish.images.map((image) => {
-      //   return image instanceof File || image instanceof Blob
-      //     ? URL.createObjectURL(image)
-      //     : image;
-      // });
-      // setPreviewUrls(previewUrls);
+      setPreviewUrls(editDish.image_url || []);
     } else {
       setFormData({
         name: "",
         description: "",
-        // category: "",
         price: "",
         discount: "",
         available: true,
-        images: [],
-        location: "",
-        included: "",
-          duration: "",
-          agerequirement: "",
-          dresscode: "",
-          accessibility: "",
-          difficulty: "",
-          timeSlot: "",
-          whatsincluded: [""],
+        image_url: [],
+        duration: "",
+        agerequirement: "",
+        dresscode: "",
+        accessibility: "",
+        difficulty: "",
+        timeSlot: [],
+        whatsincluded: [""],
       });
       setPreviewUrls([]);
     }
   }, [editDish]);
 
-  const fileInputRef = useRef(null);
-  const [previewUrls, setPreviewUrls] = useState([]);
-
+  // Cleanup object URLs when the component unmounts
   useEffect(() => {
     return () => {
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [previewUrls]);
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    const maxFiles = 85;
-    const remainingSlots = maxFiles - formData.images.length;
-    const allowedFiles = files.slice(0, remainingSlots);
 
-    const newPreviewUrls = allowedFiles.map((file) =>
-      URL.createObjectURL(file)
-    );
-    setPreviewUrls((prev) => [...prev, ...newPreviewUrls]);
+  // Handle image file selection
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
 
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...allowedFiles],
-    }));
-  };
-
-  const removeImage = (index) => {
-    URL.revokeObjectURL(previewUrls[index]);
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-      if (imageFiles.length > 0) {
-        const dataTransfer = new DataTransfer();
-        imageFiles.forEach((file) => dataTransfer.items.add(file));
-        fileInputRef.current.files = dataTransfer.files;
-        handleImageChange({ target: { files: dataTransfer.files } });
-      }
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/upload/single`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response.data.fileUrl;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Error uploading file");
+      return null;
     }
   };
 
-  const handleClose = () => {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setPreviewUrls([]);
-    setFormData((prev) => ({ ...prev, images: [] }));
-    onClose();
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploadPromises = files.map(uploadFile);
+
+    try {
+      const urls = await Promise.all(uploadPromises);
+      const validUrls = urls.filter((url) => url !== null);
+
+      setFormData((prev) => ({
+        ...prev,
+        image_url: [...prev.image_url, ...validUrls],
+      }));
+
+      toast.success(`${validUrls.length} images uploaded successfully`);
+    } catch (error) {
+      console.error("Error handling image uploads:", error);
+      toast.error("Error uploading images");
+    }
   };
 
-  const categories = [
-    "Veg",
-    "Non-Veg",
-    "Bestseller",
-    "Spicy",
-    "No onion or garlic",
-  ];
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const handleRemoveImage = (indexToRemove) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      image_url: prev.image_url.filter((_, index) => index !== indexToRemove),
     }));
   };
 
+  // Close the modal and reset form data
+  const handleClose = () => {
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
+    setFormData((prev) => ({
+      ...prev,
+      image_url: [],
+      name: "",
+      description: "",
+      price: "",
+      discount: "",
+      duration: "",
+      agerequirement: "",
+      dresscode: "",
+      accessibility: "",
+      difficulty: "",
+      timeSlot: [],
+      whatsincluded: [""],
+    }));
+    onClose();
+  };
+
+  // Handle form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "timeSlot") {
+      // Split the input by commas and trim each value
+      const timeSlots = value.split(",").map((slot) => slot.trim());
+      setFormData((prev) => ({
+        ...prev,
+        [name]: timeSlots, // Save as an array of strings
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  // Handle changes in "What's Included" items
   const handleIncludedItemChange = (index, value) => {
     const newIncludedItems = [...formData.whatsincluded];
     newIncludedItems[index] = value;
@@ -160,6 +173,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }));
   };
 
+  // Add a new "What's Included" item
   const addIncludedItem = () => {
     setFormData((prev) => ({
       ...prev,
@@ -167,9 +181,12 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }));
   };
 
+  // Remove a "What's Included" item
   const removeIncludedItem = (index) => {
     if (formData.whatsincluded.length > 1) {
-      const newIncludedItems = formData.whatsincluded.filter((_, i) => i !== index);
+      const newIncludedItems = formData.whatsincluded.filter(
+        (_, i) => i !== index
+      );
       setFormData((prev) => ({
         ...prev,
         whatsincluded: newIncludedItems,
@@ -177,64 +194,80 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    const roleid = localStorage.getItem("roleid");
 
+    let token = null;
+    const categories = ["restaurant", "shop", "activities"];
+    for (const category of categories) {
+      const storedToken = localStorage.getItem(`token_partner_${category}`);
+      if (storedToken) {
+        token = storedToken;
+        break;
+      }
+    }
+    if (!token) {
+      navigate("/login");
+      return;
+    }
     try {
       const requestBody = {
-        title: formData.name,
+        name: formData.name,
         description: formData.description,
         whatsincluded: formData.whatsincluded,
         additional_info: {
-          duration: formData.duration,
-          agerequirement: formData.agerequirement,
-          dresscode: formData.dresscode,
-          accessibility: formData.accessibility,
-          difficulty: formData.difficulty
+          duration: formData.duration || "",
+          agerequirement: formData.agerequirement || "",
+          dresscode: formData.dresscode || "",
+          accessibility: formData.accessibility || "",
+          difficulty: formData.difficulty || "",
         },
         price: Number(formData.price),
-        slots: [formData.timeSlot],
+        slots: formData.timeSlot, // Already an array of strings
         discount_percentage: Number(formData.discount),
-        images: ["image3.jpg"]
+        activity_id: roleid,
+        image_url: formData.image_url,
       };
 
-      const response = editDish 
-        ? await activitiesAxios.put(`/activity/${editDish._id}`, requestBody)
-        : await activitiesAxios.post('/activity', requestBody);
-
-      if (response.data.success) {
-        console.log('Success:', response.data);
+      const response = editDish
+        ? await axios.put(
+            `${process.env.REACT_APP_BASE_URL}/task/${editDish._id}`,
+            requestBody,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        : await axios.post(
+            `${process.env.REACT_APP_BASE_URL}/task`,
+            requestBody,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+      if (response.status === 200) {
         onAddItem(response.data.data);
         handleClose();
-        setFormData({
-          name: "",
-          description: "",
-          price: "",
-          discount: "",
-          available: true,
-          images: [],
-          location: "",
-          included: "",
-          duration: "",
-          agerequirement: "",
-          dresscode: "",
-          accessibility: "",
-          difficulty: "",
-          timeSlot: "",
-          whatsincluded: [""],
-        });
-        toast.success(editDish ? 'Activity updated successfully' : 'Activity added successfully');
+        toast.success(
+          editDish
+            ? "Activity updated successfully"
+            : "Activity added successfully"
+        );
       } else {
-        console.log('Error:', response.data);
-        toast.error('Error processing request', response.data.error);
+        toast.error("Error processing request", response.data.error);
       }
     } catch (error) {
       console.error(error);
-      toast.error('Error processing request');
+      toast.error("Error processing request");
     }
   };
 
+  // Don't render the modal if it's not open
   if (!isOpen) return null;
 
   return (
@@ -247,7 +280,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
               {editDish ? "Edit Activity" : "Add New Activity"}
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="rounded-full p-2 hover:bg-gray-100 transition-colors"
             >
               <X className="w-6 h-6 text-gray-500" />
@@ -259,7 +292,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Information Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">Basic Information</h3>
+                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
+                  Basic Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -274,21 +309,6 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                       required
                     />
                   </div>
-                  {!editDish && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Location
-                      </label>
-                      <input
-                        name="location"
-                        type="text"
-                        value={formData.location}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-                        required
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div>
@@ -308,14 +328,18 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
               {/* What's Included Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">What's Included</h3>
+                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
+                  What's Included
+                </h3>
                 <div className="space-y-2">
                   {formData.whatsincluded.map((item, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <input
                         type="text"
                         value={item}
-                        onChange={(e) => handleIncludedItemChange(index, e.target.value)}
+                        onChange={(e) =>
+                          handleIncludedItemChange(index, e.target.value)
+                        }
                         className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                         placeholder="Enter included item"
                       />
@@ -341,7 +365,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
               {/* Additional Information Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">Additional Information</h3>
+                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
+                  Additional Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -413,7 +439,9 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
               {/* Pricing Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">Pricing & Availability</h3>
+                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">
+                  Pricing & Availability
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -437,7 +465,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                     <input
                       name="timeSlot"
                       type="text"
-                      value={formData.timeSlot}
+                      value={formData.timeSlot.join(", ")} // Convert array to comma-separated string
                       onChange={handleChange}
                       className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
                       required
@@ -460,47 +488,32 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
                 </div>
               </div>
 
-              {/* Image Upload Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-800 border-b pb-2">Images</h3>
-                <div
-                  className="mt-1 flex flex-col justify-center rounded-lg border-2 border-dashed border-gray-300 px-6 py-8 hover:border-blue-500 transition-colors cursor-pointer"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleImageChange}
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                  />
-                  <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">Click to upload or drag and drop</p>
-                    <p className="mt-1 text-xs text-gray-500">({formData.images.length}/85)</p>
-                  </div>
-                </div>
-
-                {previewUrls.length > 0 && (
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {previewUrls.map((url, index) => (
-                      <div key={index} className="relative group">
+              {/* Images Section */}
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Add Images
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="border rounded-md px-3 py-2 w-full"
+                />
+                {formData.image_url.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.image_url.map((url, index) => (
+                      <div key={index} className="relative">
                         <img
                           src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
+                          alt={`Upload ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded"
                         />
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeImage(index);
-                          }}
-                          className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
                         >
-                          <X className="w-4 h-4" />
+                          ×
                         </button>
                       </div>
                     ))}
@@ -514,7 +527,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
           <div className="border-t p-6 flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Cancel

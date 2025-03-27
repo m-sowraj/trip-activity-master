@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { toast } from "react-toastify";
-import activitiesAxios from '../../../../utils/activitiesAxios';
+import axios from 'axios';
 
 const BookingsManager = () => {
   const [bookings, setBookings] = useState([]);
@@ -16,7 +16,7 @@ const BookingsManager = () => {
 
   const fetchBookings = async () => {
     try {
-      const response = await activitiesAxios.get('/activity/booking');
+      const response = await axios.get('/activity/booking');
       setBookings(response.data.data || []);
       setLoading(false);
     } catch (error) {
@@ -32,7 +32,7 @@ const BookingsManager = () => {
   // Handle status update
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
-      const response = await activitiesAxios.put(`/managebooking/${bookingId}`, {
+      const response = await axios.put(`/managebooking/${bookingId}`, {
         status: newStatus === "new booking" ? true : newStatus
       });
 

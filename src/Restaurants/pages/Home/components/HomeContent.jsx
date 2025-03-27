@@ -1,20 +1,8 @@
 import React from 'react'
-import { 
-    Home, 
-    Utensils, 
-    Calendar, 
-    MessageSquare, 
-    DollarSign,
-    Search,
-    Plus,
-    ChevronLeft,
-    ChevronRight,
-    Settings,
-    LogOut
-  } from 'lucide-react';
+
   import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
-  import restaurantAxios from '../../../../utils/restaurantAxios';
   import { toast } from 'react-hot-toast';
+import axios from 'axios';
   
   // Sample data for charts
   const earningsData = [
@@ -42,7 +30,7 @@ import {
 const HomeContent = () => {
     const fetchStats = async () => {
       try {
-        const response = await restaurantAxios.get('/stats');
+        const response = await axios.get('/stats');
         // Update your state with the response data
       } catch (error) {
         console.error('Error fetching stats:', error);

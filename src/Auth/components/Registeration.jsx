@@ -3,9 +3,11 @@ import { Eye, EyeOff, Upload, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import ProgressBar from "./ProgressBar";
 import { toast, ToastContainer } from "react-toastify";
-
+import axios from "axios";
 const PartnerRegistration = () => {
   const navigate = useNavigate();
+  const [selectedDays, setSelectedDays] = useState([]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [locations, setLocations] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,33 +24,31 @@ const PartnerRegistration = () => {
     pincode: "",
     password: "",
     confirmPassword: "",
-    businessHours: {
-      days: [],
-      openingTime: "",
-      closingTime: "",
-    },
+    openingTime: "",
+    closingTime: "",
     image_url: [],
     logo_url: "",
-    location_id: ""
+    location_id: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    fetch('https://fourtrip-server.onrender.com/api/locations/dropdown/list')
-      .then(response => response.json())
-      .then(data => {
-        setLocations(data);
+    fetch(`${process.env.REACT_APP_BASE_URL}/location/dropdown/list`)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("data for the dropdown locations : ", data);
+        setLocations(data.data);
       })
-      .catch(error => {
-        console.error('Error fetching locations:', error);
-        toast.error('Failed to load locations');
+      .catch((error) => {
+        console.error("Error fetching locations:", error);
+        toast.error("Failed to load locations");
       });
   }, []);
 
   useEffect(() => {
-    const filtered = locations.filter(location => 
+    const filtered = locations.filter((location) =>
       location.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredLocations(filtered);
@@ -63,125 +63,140 @@ const PartnerRegistration = () => {
   };
 
   const handleDayToggle = (day) => {
-    setFormData((prev) => ({
-      ...prev,
-      businessHours: {
-        ...prev.businessHours,
-        days: prev.businessHours.days.includes(day)
-          ? prev.businessHours.days.filter(d => d !== day)
-          : [...prev.businessHours.days, day]
-      }
-    }));
+    setSelectedDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
   };
 
   const uploadImage = async (file) => {
+    if (!file) {
+      console.error("No file provided");
+      toast.error("No file selected");
+      return null;
+    }
+
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     try {
-      const response = await fetch('https://fourtrip-server.onrender.com/api/upload/single', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      return data.fileUrl;
+      const response = await axios.post(
+        "https://fourtrip-server.onrender.com/api/upload/single",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      return response.data.fileUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
       return null;
     }
   };
 
   const handleImageUpload = async (files) => {
-    const uploadPromises = Array.from(files).map(file => uploadImage(file));
+    const uploadPromises = Array.from(files).map((file) => uploadImage(file));
     try {
       const urls = await Promise.all(uploadPromises);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        image_url: [...prev.image_url, ...urls.filter(url => url !== null)]
+        image_url: [...prev.image_url, ...urls.filter((url) => url !== null)],
       }));
     } catch (error) {
-      console.error('Error uploading images:', error);
-      toast.error('Failed to upload some images');
+      console.error("Error uploading images:", error);
+      toast.error("Failed to upload some images");
     }
   };
 
   const handleLogoUpload = async (file) => {
+    if (!file) {
+      console.error("File is undefined");
+      toast.error("Please select a file before uploading.");
+      return;
+    }
+
     const url = await uploadImage(file);
     if (url) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        logo_url: url
+        logo_url: url,
       }));
     }
   };
 
   const handleContinue = () => {
     if (currentStep === 1) {
-      if (!formData.businessName || !formData.ownerName || !formData.email || 
-          !formData.phone || !formData.category || !formData.address || 
-          !formData.city || !formData.pincode || !formData.location_id) {
+      if (
+        !formData.businessName ||
+        !formData.ownerName ||
+        !formData.email ||
+        !formData.phone ||
+        !formData.category ||
+        !formData.address ||
+        !formData.city ||
+        !formData.pincode ||
+        !formData.location_id
+      ) {
         toast.error("Please fill all the fields");
         return;
       }
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // You might want to add validation for images and business hours here
       setCurrentStep(3);
     } else if (currentStep === 3) {
       if (formData.password !== formData.confirmPassword) {
         toast.error("Passwords don't match");
         return;
       }
-      // Submit form
       handleSubmit();
     }
   };
 
   const handleSubmit = () => {
     const submitData = {
-      business_name: formData.businessName,
-      owner_name: formData.ownerName,
+      name: formData.ownerName,
       email: formData.email,
       phone_number: formData.phone,
       password: formData.password,
-      reg_type: 'partner',
-      select_category: formData.category,
+      business_name: formData.businessName,
+      owner_name: formData.ownerName,
+      image_url: formData.image_url,
+      logo_url: formData.logo_url,
       address: formData.address,
       city: formData.city,
       pincode: formData.pincode,
+      businessHours: {
+        days: selectedDays,
+        openingTime: formData.openingTime,
+        closingTime: formData.closingTime,
+      },
       location_id: formData.location_id,
-      businessHours: formData.businessHours,
-      image_url: formData.image_url,
-      logo_url: formData.logo_url,
-      isActive: false,
       isNew: true,
     };
 
-    fetch('https://fourtrip-server.onrender.com/api/commonauth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(submitData),
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 200) {
-        toast.success('Registration successful');
-        navigate('/login');
-      } else {
-        toast.error(data.message);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      if (error.response && error.response.status == 400) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error(error.response.data.message);
-      }
-    });
+    axios
+      .post(
+        `${process.env.REACT_APP_BASE_URL}/${formData.category}`,
+        submitData
+      )
+
+      .then((response) => {
+        if (response.status === 201) {
+          toast.success("Registration successful");
+          navigate("/login");
+        } else {
+          toast.error(response.data.message);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        if (error.response && error.response.status === 400) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error("An unexpected error occurred");
+        }
+      });
   };
 
   const handleBack = () => {
@@ -191,9 +206,9 @@ const PartnerRegistration = () => {
   };
 
   const handleLocationSelect = (location) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      location_id: location._id
+      location_id: location._id,
     }));
     setIsLocationDropdownOpen(false);
   };
@@ -201,22 +216,33 @@ const PartnerRegistration = () => {
   const renderLocationDropdown = () => (
     <div className="relative location-dropdown">
       <label className="block text-sm mb-1">Location</label>
-      <div 
+      <div
         className="w-full px-4 py-2 rounded bg-orange-50 cursor-pointer flex justify-between items-center"
         onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
       >
-        <span className={`${!formData.location_id ? 'text-gray-400' : 'text-gray-700'}`}>
-          {formData.location_id 
-            ? locations.find(l => l._id === formData.location_id)?.name 
+        <span
+          className={`${
+            !formData.location_id ? "text-gray-400" : "text-gray-700"
+          }`}
+        >
+          {formData.location_id
+            ? locations.find((l) => l._id === formData.location_id)?.name
             : "Select a location"}
         </span>
-        <svg 
-          className={`w-4 h-4 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-4 h-4 transition-transform ${
+            isLocationDropdownOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </div>
 
@@ -242,7 +268,7 @@ const PartnerRegistration = () => {
                 No locations found
               </div>
             ) : (
-              filteredLocations.map(location => (
+              filteredLocations.map((location) => (
                 <div
                   key={location._id}
                   className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center justify-between"
@@ -376,8 +402,8 @@ const PartnerRegistration = () => {
             onChange={(e) => handleLogoUpload(e.target.files[0])}
             accept="image/*"
           />
-          <label 
-            htmlFor="logoUpload" 
+          <label
+            htmlFor="logoUpload"
             className="cursor-pointer flex flex-col items-center"
           >
             <Upload className="w-8 h-8 text-gray-400 mb-2" />
@@ -404,20 +430,26 @@ const PartnerRegistration = () => {
             onChange={(e) => handleImageUpload(e.target.files)}
             accept="image/*"
           />
-          <label 
-            htmlFor="imageUpload" 
+          <label
+            htmlFor="imageUpload"
             className="cursor-pointer flex flex-col items-center"
           >
             <Upload className="w-8 h-8 text-gray-400 mb-2" />
-            <span className="text-sm text-gray-600">Click to upload images</span>
-            <span className="text-xs text-gray-400 mt-1">You can select multiple images</span>
+            <span className="text-sm text-gray-600">
+              Click to upload images
+            </span>
+            <span className="text-xs text-gray-400 mt-1">
+              You can select multiple images
+            </span>
           </label>
         </div>
 
         {/* Preview uploaded images */}
         {formData.image_url.length > 0 && (
           <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">Uploaded Images ({formData.image_url.length})</h4>
+            <h4 className="text-sm font-medium mb-2">
+              Uploaded Images ({formData.image_url.length})
+            </h4>
             <div className="grid grid-cols-3 gap-4">
               {formData.image_url.map((image, index) => (
                 <div key={index} className="relative group">
@@ -428,16 +460,25 @@ const PartnerRegistration = () => {
                   />
                   <button
                     onClick={() => {
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
-                        image_url: prev.image_url.filter((_, i) => i !== index)
+                        image_url: prev.image_url.filter((_, i) => i !== index),
                       }));
                     }}
                     className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 
                              opacity-0 group-hover:opacity-100 transition-opacity"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -446,17 +487,29 @@ const PartnerRegistration = () => {
           </div>
         )}
       </div>
-      
+
       <div>
         <h3 className="text-lg font-medium mb-2">Business Hours</h3>
         <div className="grid grid-cols-7 gap-2 mb-4">
-          {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map((day) => (
+          {[
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+          ].map((day) => (
             <button
               key={day}
-              className={`p-2 rounded ${formData.businessHours.days.includes(day) ? 'bg-emerald-400 text-white' : 'bg-gray-200'}`}
+              className={`p-2 rounded ${
+                selectedDays.includes(day)
+                  ? "bg-emerald-400 text-white"
+                  : "bg-gray-200"
+              }`}
               onClick={() => handleDayToggle(day)}
             >
-              {day.slice(0,3)}
+              {day.slice(0, 3)}
             </button>
           ))}
         </div>
@@ -467,7 +520,7 @@ const PartnerRegistration = () => {
               type="time"
               name="openingTime"
               className="w-full px-4 py-2 rounded bg-orange-50"
-              value={formData.businessHours.openingTime}
+              value={formData.openingTime}
               onChange={handleInputChange}
             />
           </div>
@@ -477,7 +530,7 @@ const PartnerRegistration = () => {
               type="time"
               name="closingTime"
               className="w-full px-4 py-2 rounded bg-orange-50"
-              value={formData.businessHours.closingTime}
+              value={formData.closingTime}
               onChange={handleInputChange}
             />
           </div>
@@ -531,15 +584,19 @@ const PartnerRegistration = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      const dropdown = document.querySelector('.location-dropdown');
-      if (isLocationDropdownOpen && dropdown && !dropdown.contains(event.target)) {
+      const dropdown = document.querySelector(".location-dropdown");
+      if (
+        isLocationDropdownOpen &&
+        dropdown &&
+        !dropdown.contains(event.target)
+      ) {
         setIsLocationDropdownOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isLocationDropdownOpen]);
 
@@ -550,7 +607,7 @@ const PartnerRegistration = () => {
         {currentStep === 1 && renderStepOne()}
         {currentStep === 2 && renderStepTwo()}
         {currentStep === 3 && renderStepThree()}
-        
+
         <div className="flex gap-4 mt-6">
           {currentStep > 1 && (
             <button
@@ -570,8 +627,8 @@ const PartnerRegistration = () => {
 
         <p className="text-center mt-4 text-sm text-gray-600">
           Have an account already?{" "}
-          <span 
-            onClick={() => navigate('/login')} 
+          <span
+            onClick={() => navigate("/login")}
             className="text-emerald-400 cursor-pointer"
           >
             Login

@@ -1,17 +1,20 @@
-import React, { useRef, useState, useEffect } from "react";
-import { X, Upload, Plus, Minus } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import restaurantAxios from '../../../../utils/restaurantAxios';
-
+import axios from "axios";
+import { X } from "lucide-react";
+import { useNavigate } from "react-router-dom/dist";
 const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     category: "",
     price: "",
     discounted_price: "",
-    image: "",
+    image_url: "",
     is_active: true,
+    restaurant_id: "",
+    filter: [],
   });
 
   useEffect(() => {
@@ -22,8 +25,10 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         category: editDish.category,
         price: editDish.price,
         discounted_price: editDish.discounted_price,
-        image_url: editDish.image_url,
+        image_url: editDish.image_url || "",
         is_active: editDish.is_active,
+        restaurant_id: editDish.restaurant_id,
+        filter: editDish.filter || [],
       });
     } else {
       setFormData({
@@ -32,81 +37,13 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         category: "",
         price: "",
         discounted_price: "",
-        image: "",
+        image_url: "",
         is_active: true,
+        restaurant_id: "",
+        filter: [],
       });
     }
   }, [editDish]);
-
-  const fileInputRef = useRef(null);
-  const [previewUrls, setPreviewUrls] = useState([]);
-
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    const maxFiles = 85;
-    const remainingSlots = maxFiles - formData.images.length;
-    const allowedFiles = files.slice(0, remainingSlots);
-
-    const newPreviewUrls = allowedFiles.map((file) =>
-      URL.createObjectURL(file)
-    );
-    setPreviewUrls((prev) => [...prev, ...newPreviewUrls]);
-
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...allowedFiles],
-    }));
-  };
-
-  const removeImage = (index) => {
-    URL.revokeObjectURL(previewUrls[index]);
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
-      if (imageFiles.length > 0) {
-        const dataTransfer = new DataTransfer();
-        imageFiles.forEach((file) => dataTransfer.items.add(file));
-        fileInputRef.current.files = dataTransfer.files;
-        handleImageChange({ target: { files: dataTransfer.files } });
-      }
-    }
-  };
-
-  const handleClose = () => {
-    previewUrls.forEach((url) => URL.revokeObjectURL(url));
-    setPreviewUrls([]);
-    setFormData((prev) => ({ ...prev, images: [] }));
-    onClose();
-  };
-
-  const categories = [
-    "Veg",
-    "Non-Veg",
-    "Bestseller",
-    "Spicy",
-    "No onion or garlic",
-  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -116,35 +53,84 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
     }));
   };
 
-  const handleIncludedItemChange = (index, value) => {
-    const newIncludedItems = [...formData.whatsincluded];
-    newIncludedItems[index] = value;
-    setFormData((prev) => ({
-      ...prev,
-      whatsincluded: newIncludedItems,
-    }));
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BASE_URL}/upload/single`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+      return response.data.fileUrl;
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast.error("Error uploading file");
+      return null;
+    }
   };
 
-  const addIncludedItem = () => {
-    setFormData((prev) => ({
-      ...prev,
-      whatsincluded: [...prev.whatsincluded, ""],
-    }));
-  };
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    const uploadPromises = files.map(uploadFile);
 
-  const removeIncludedItem = (index) => {
-    if (formData.whatsincluded.length > 1) {
-      const newIncludedItems = formData.whatsincluded.filter((_, i) => i !== index);
+    try {
+      const urls = await Promise.all(uploadPromises);
+      const validUrls = urls.filter((url) => url !== null);
+
       setFormData((prev) => ({
         ...prev,
-        whatsincluded: newIncludedItems,
+        image_url: prev.image_url
+          ? `${prev.image_url},${validUrls.join(",")}`
+          : validUrls.join(","),
       }));
+
+      toast.success(`${validUrls.length} images uploaded successfully`);
+    } catch (error) {
+      console.error("Error handling image uploads:", error);
+      toast.error("Error uploading images");
     }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setFormData((prev) => {
+      const urlsArray = prev.image_url ? prev.image_url.split(",") : [];
+      urlsArray.splice(indexToRemove, 1);
+      return { ...prev, image_url: urlsArray.join(",") };
+    });
+  };
+
+  const handleFilterChange = (e) => {
+    const { value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      filter: value.split(",").map((item) => item.trim()),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    let token = null;
+    let id = null;
+    const categories = ["restaurant", "shop", "activities"];
+
+    for (const category of categories) {
+      const storedToken = localStorage.getItem(`token_partner_${category}`);
+      const storedId = localStorage.getItem(`roleid`);
+      if (storedToken && storedId) {
+        token = storedToken;
+        id = storedId;
+        break;
+      }
+    }
+
+    if (!token || !id) {
+      navigate("/login");
+      return;
+    }
     try {
       const requestBody = {
         name: formData.name,
@@ -152,23 +138,45 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
         category: formData.category,
         price: Number(formData.price),
         discounted_price: Number(formData.discounted_price),
-        image_url: formData.image,
+        image_url: formData.image_url,
+        is_active: formData.is_active,
+        restaurant_id: id,
+        filter: formData.filter,
       };
 
-      const response = editDish 
-        ? await restaurantAxios.put(`/dishes/${editDish._id}`, requestBody)
-        : await restaurantAxios.post('/dishes', requestBody);
-
-      if (response.data.success) {
-        onAddItem(response.data.data);
-        handleClose();
-        toast.success(editDish ? 'Dish updated successfully' : 'Dish added successfully');
+      const response = editDish
+        ? await axios.put(
+            `${process.env.REACT_APP_BASE_URL}/dish/${editDish._id}`,
+            requestBody,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        : await axios.post(
+            `${process.env.REACT_APP_BASE_URL}/dish`,
+            requestBody,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+      console.log("sucess of food dishes : ", response);
+      if (response.status == 200) {
+        onAddItem(response.data);
+        onClose();
+        console.log("consoling the onclose poppup");
+        toast.success(
+          editDish ? "Dish updated successfully" : "Dish added successfully"
+        );
       } else {
-        toast.error(editDish ? 'Error updating dish' : 'Error adding dish');
+        toast.error(editDish ? "Error updating dish" : "Error adding dish");
       }
     } catch (error) {
       console.error(error);
-      toast.error('Error processing request');
+      toast.error("Error processing request");
     }
   };
 
@@ -184,7 +192,7 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
               {editDish ? "Edit Dish" : "Add New Dish"}
             </h2>
             <button
-              onClick={handleClose}
+              onClick={onClose}
               className="rounded-full p-2 hover:bg-gray-100 transition-colors"
             >
               <X className="w-6 h-6 text-gray-500" />
@@ -271,25 +279,54 @@ const AddItemModal = ({ isOpen, onClose, onAddItem, editDish }) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
+                    Filters (comma-separated)
                   </label>
                   <input
-                    name="image"
+                    name="filter"
                     type="text"
-                    value={formData.image_url}
-                    onChange={handleChange}
+                    value={formData.filter.join(",")}
+                    onChange={handleFilterChange}
                     className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                    placeholder="Enter image URL"
-                    required
                   />
                 </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700 font-medium mb-2">
+                  Add Images
+                </label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="border rounded-md px-3 py-2 w-full"
+                />
+                {formData.image_url && formData.image_url.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.image_url.split(",").map((url, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={url}
+                          alt={`Upload ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded"
+                        />
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="flex justify-end gap-3 pt-6">
                 <button
                   type="button"
-                  onClick={handleClose}
+                  onClick={onClose}
                   className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
