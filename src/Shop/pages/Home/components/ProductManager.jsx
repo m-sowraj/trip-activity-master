@@ -4,19 +4,19 @@ import {
   Edit,
   Plus,
   Search,
-  Trash2,
-} from "lucide-react";
-import React, { useState, useEffect } from "react";
-import AddItemModal from "./AdditemDish";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { useNavigate } from "react-router-dom/dist";
+  Trash2
+} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import AddItemModal from './AdditemDish';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom/dist';
 
-const DishManager = () => {
+const ShopProductManager = () => {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editDish, setEditDish] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
 
@@ -33,8 +33,8 @@ const DishManager = () => {
       );
       setProducts(response.data);
     } catch (error) {
-      console.error("Error fetching products:", error);
-      toast.error("Error fetching products");
+      console.error('Error fetching products:', error);
+      toast.error('Error fetching products');
     } finally {
       setLoading(false);
     }
@@ -43,10 +43,10 @@ const DishManager = () => {
   const handleAddItem = async (newProduct) => {
     try {
       setProducts((prev) => [...prev, newProduct]);
-      toast.success("Product added successfully");
+      toast.success('Product added successfully');
     } catch (error) {
-      console.error("Error adding product:", error);
-      toast.error("Error adding product");
+      console.error('Error adding product:', error);
+      toast.error('Error adding product');
     }
   };
 
@@ -64,24 +64,24 @@ const DishManager = () => {
         )
       );
       setEditDish(null);
-      toast.success("Product updated successfully");
+      toast.success('Product updated successfully');
     } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("Error updating product");
+      console.error('Error updating product:', error);
+      toast.error('Error updating product');
     }
   };
 
   const handleDeleteDish = async (id) => {
     try {
       const isConfirmed = window.confirm(
-        "Are you sure you want to delete this product?"
+        'Are you sure you want to delete this product?'
       );
       if (!isConfirmed) {
         return;
       }
 
       let token = null;
-      const categories = ["restaurant", "shop", "activities"];
+      const categories = ['restaurant', 'shop', 'activities'];
       for (const category of categories) {
         const storedToken = localStorage.getItem(`token_partner_${category}`);
         if (storedToken) {
@@ -91,28 +91,28 @@ const DishManager = () => {
       }
 
       if (!token) {
-        navigate("/login");
+        navigate('/login');
         return;
       }
 
       await axios.delete(`${process.env.REACT_APP_BASE_URL}/product/${id}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
 
       fetchProducts();
-      toast.success("Product deleted successfully");
+      toast.success('Product deleted successfully');
     } catch (error) {
-      console.error("Error deleting product:", error);
-      toast.error("Error deleting product");
+      console.error('Error deleting product:', error);
+      toast.error('Error deleting product');
     }
   };
 
   const handleToggleActive = async (id, is_deleted) => {
     try {
       let token = null;
-      const categories = ["restaurant", "shop", "activities"];
+      const categories = ['restaurant', 'shop', 'activities'];
       for (const category of categories) {
         const storedToken = localStorage.getItem(`token_partner_${category}`);
         if (storedToken) {
@@ -122,7 +122,7 @@ const DishManager = () => {
       }
 
       if (!token) {
-        navigate("/login");
+        navigate('/login');
         return;
       }
       await axios.put(
@@ -130,8 +130,8 @@ const DishManager = () => {
         { is_deleted: !is_deleted },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         }
       );
       setProducts(
@@ -140,11 +140,11 @@ const DishManager = () => {
         )
       );
       toast.success(
-        `Product ${!is_deleted ? "activated" : "deactivated"} successfully`
+        `Product ${!is_deleted ? 'activated' : 'deactivated'} successfully`
       );
     } catch (error) {
-      console.error("Error updating product status:", error);
-      toast.error("Error updating product status");
+      console.error('Error updating product status:', error);
+      toast.error('Error updating product status');
     }
   };
 
@@ -204,18 +204,18 @@ const DishManager = () => {
             <tr key={product._id} className="border-b">
               <td className="p-4">{product.name}</td>
               <td className="p-4">₹{product.price}</td>
-              <td className="p-4">₹{product.discounted_price || "-"}</td>
+              <td className="p-4">₹{product.discounted_price || '-'}</td>
               <td className="p-4">
                 <div
                   onClick={() =>
                     handleToggleActive(product._id, product.is_deleted)
                   }
                   className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer
-                    ${!product.is_deleted ? "bg-green-500" : "bg-gray-300"}`}
+                    ${!product.is_deleted ? 'bg-green-500' : 'bg-gray-300'}`}
                 >
                   <div
                     className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out
-                    ${!product.is_deleted ? "translate-x-6" : "translate-x-0"}`}
+                    ${!product.is_deleted ? 'translate-x-6' : 'translate-x-0'}`}
                   ></div>
                 </div>
               </td>
@@ -253,4 +253,4 @@ const DishManager = () => {
   );
 };
 
-export default DishManager;
+export default ShopProductManager;

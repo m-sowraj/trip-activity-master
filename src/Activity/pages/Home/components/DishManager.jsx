@@ -4,29 +4,29 @@ import {
   Edit,
   Plus,
   Search,
-  Trash2,
-} from "lucide-react";
-import React, { useEffect, useState } from "react";
-import AddItemModal from "./AdditemDish";
-import { toast } from "react-toastify";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+  Trash2
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import AddItemModal from './AdditemDish';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const DishManager = () => {
+const TaskManager = () => {
   const navigate = useNavigate();
   const [dishes, setDishes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [editDish, setEditDish] = useState(null);
 
   const filters = [
-    "Veg",
-    "Non-Veg",
-    "Bestseller",
-    "Spicy",
-    "No onion or garlic",
+    'Veg',
+    'Non-Veg',
+    'Bestseller',
+    'Spicy',
+    'No onion or garlic'
   ];
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const DishManager = () => {
       setLoading(false);
     } catch (error) {
       console.error(error);
-      setError("Failed to fetch activities");
+      setError('Failed to fetch activities');
       setLoading(false);
     }
   };
@@ -66,7 +66,7 @@ const DishManager = () => {
   const toggleAvailability = async (id, is_deleted) => {
     try {
       let token = null;
-      const categories = ["restaurant", "shop", "activities"];
+      const categories = ['restaurant', 'shop', 'activities'];
       for (const category of categories) {
         const storedToken = localStorage.getItem(`token_partner_${category}`);
         if (storedToken) {
@@ -76,18 +76,18 @@ const DishManager = () => {
       }
 
       if (!token) {
-        navigate("/login");
+        navigate('/login');
         return;
       }
       await axios.put(
         `${process.env.REACT_APP_BASE_URL}/task/${id}`,
         {
-          is_deleted: !is_deleted,
+          is_deleted: !is_deleted
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         }
       );
       setDishes(
@@ -95,10 +95,10 @@ const DishManager = () => {
           dish._id === id ? { ...dish, is_deleted: !is_deleted } : dish
         )
       );
-      toast.success("Activity availability status updated successfully");
+      toast.success('Activity availability status updated successfully');
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error updating activity status");
+      console.error('Error:', error);
+      toast.error('Error updating activity status');
     }
   };
 
@@ -117,7 +117,7 @@ const DishManager = () => {
   const handleDeleteDish = async (id) => {
     try {
       let token = null;
-      const categories = ["restaurant", "shop", "activities"];
+      const categories = ['restaurant', 'shop', 'activities'];
       // requestBody.shop_id = id;
       for (const category of categories) {
         const storedToken = localStorage.getItem(`token_partner_${category}`);
@@ -128,25 +128,25 @@ const DishManager = () => {
       }
 
       if (!token) {
-        navigate("/login");
+        navigate('/login');
         return;
       }
       await axios.is_deleted(
         `${process.env.REACT_APP_BASE_URL}/task/${id}`,
         {
-          is_deleted: true,
+          is_deleted: true
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${token}`
+          }
         }
       );
       setDishes(dishes.filter((dish) => dish._id !== id));
-      toast.success("Activity deleted successfully");
+      toast.success('Activity deleted successfully');
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error deleting activity");
+      console.error('Error:', error);
+      toast.error('Error deleting activity');
     }
   };
 
@@ -215,7 +215,7 @@ const DishManager = () => {
                   <div className="flex items-center">
                     <div
                       className={`w-12 h-6 rounded-full p-1 cursor-pointer ${
-                        !dish.is_deleted ? "bg-green-500" : "bg-gray-300"
+                        !dish.is_deleted ? 'bg-green-500' : 'bg-gray-300'
                       }`}
                       onClick={() =>
                         toggleAvailability(dish._id, dish.is_deleted)
@@ -223,7 +223,7 @@ const DishManager = () => {
                     >
                       <div
                         className={`w-4 h-4 rounded-full bg-white transform transition-transform ${
-                          !dish.is_deleted ? "translate-x-6" : ""
+                          !dish.is_deleted ? 'translate-x-6' : ''
                         }`}
                       />
                     </div>
@@ -286,4 +286,4 @@ const DishManager = () => {
   );
 };
 
-export default DishManager;
+export default TaskManager;
